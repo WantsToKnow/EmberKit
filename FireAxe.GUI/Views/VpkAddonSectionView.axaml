@@ -1,0 +1,84 @@
+<!-- Modified for EmberKit, based on ktxiaok/FireAxe 0.7.3; see MODIFICATIONS.md. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:FireAxe.ViewModels"
+             xmlns:v="using:FireAxe.Views"
+             xmlns:r="using:FireAxe.Resources"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="450"
+             x:Class="FireAxe.Views.VpkAddonSectionView"
+             x:DataType="vm:VpkAddonViewModel">
+  <StackPanel
+    Orientation="Vertical">
+    <StackPanel.Styles>
+      <Style Selector="Expander">
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+      </Style>
+    </StackPanel.Styles>
+    <Border Background="#1A2231" CornerRadius="7" Padding="12" Margin="0,0,0,14">
+      <StackPanel Spacing="8">
+        <TextBlock Text="替换对象 / 分类依据" FontSize="16" FontWeight="SemiBold"/>
+        <TextBlock Text="{Binding Addon.Inspection.Summary}" Foreground="#95BDF9" TextWrapping="Wrap"/>
+        <TextBlock Text="{Binding Addon.DeploymentStatus}" Foreground="#FFCE8E" TextWrapping="Wrap"/>
+        <Expander Header="查看实体文件位置" HorizontalAlignment="Stretch">
+          <SelectableTextBlock Text="{Binding Addon.VpkFilePath}" TextWrapping="Wrap" FontSize="11"/>
+        </Expander>
+        <Expander Header="查看 VPK 内部路径" HorizontalAlignment="Stretch">
+          <SelectableTextBlock Text="{Binding Addon.Inspection.Evidence}" TextWrapping="Wrap" FontSize="11"/>
+        </Expander>
+      </StackPanel>
+    </Border>
+    <TextBlock
+      Text="{x:Static r:Texts.VpkInfo}"
+      Classes="Heading1"/>
+
+    <DockPanel>
+      <SelectableTextBlock
+        DockPanel.Dock="Left"
+        Text="{x:Static r:Texts.VersionColon}"
+        Classes="PropertyName"/>
+      <SelectableTextBlock
+        Text="{Binding Info.Version}"
+        Classes="PropertyValue"/>
+    </DockPanel>
+
+    <DockPanel>
+      <SelectableTextBlock
+        DockPanel.Dock="Left"
+        Text="{x:Static r:Texts.TitleColon}"
+        Classes="PropertyName"/>
+      <SelectableTextBlock
+        Text="{Binding Info.Title}"
+        Classes="PropertyValue"/>
+    </DockPanel>
+
+    <DockPanel>
+      <SelectableTextBlock
+        DockPanel.Dock="Left"
+        Text="{x:Static r:Texts.AuthorColon}"
+        Classes="PropertyName"/>
+      <SelectableTextBlock
+        Text="{Binding Info.Author}"
+        Classes="PropertyValue"/>
+    </DockPanel>
+
+    <SelectableTextBlock
+      Text="{x:Static r:Texts.DescriptionColon}"
+      Classes="PropertyName"/>
+    <SelectableTextBlock
+      Text="{Binding Info.Description}"
+      TextWrapping="Wrap"/>
+
+    <Expander
+      Margin="0, 5, 0, 5">
+      <Expander.Header>
+        <TextBlock
+          Text="{x:Static r:Texts.ConflictingDetails}"
+          Classes="Heading1"/>
+      </Expander.Header>
+      <v:VpkAddonConflictingDetailsView
+        DataContext="{Binding ConflictingDetailsViewModel}"/>
+    </Expander>
+  </StackPanel>
+</UserControl>

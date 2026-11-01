@@ -1,0 +1,12 @@
+EmberKit
+
+Based on FireAxe 0.7.3 by ktxiaok.
+Upstream: https://github.com/ktxiaok/FireAxe
+Base commit: f8aa1cf1391802c64525412fdf326dbe0ecc98b1
+License: Apache License, Version 2.0 (see LICENSE.txt).
+
+EmberKit contains modifications maintained in WantsToKnow/EmberKit.
+The original FireAxe development, existing downloader, management features,
+and other upstream work remain attributed to their original contributors.
+Modified upstream source files carry an EmberKit modification notice.
+See MODIFICATIONS.md and README.zh-Hans.md for the additions.

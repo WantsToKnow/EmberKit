@@ -1,0 +1,117 @@
+<Application
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  x:Class="FireAxe.App"
+  xmlns:local="using:FireAxe"
+  xmlns:v="using:FireAxe.Views"
+  xmlns:conv="using:FireAxe.ValueConverters"
+  xmlns:dt="using:FireAxe.DataTemplates"
+  xmlns:r="using:FireAxe.Resources"
+  xmlns:semi="https://irihi.tech/semi"
+  xmlns:sys="using:System">
+
+  <Application.DataTemplates>
+    <dt:ViewLocator/>
+  </Application.DataTemplates>
+  
+  <Application.Styles>
+    <semi:SemiTheme/>
+    <semi:SemiPopupAnimations/>
+    <Style Selector="Window">
+      <Setter Property="Icon" Value="/Assets/AppLogo.ico"/>
+    </Style>
+    
+    <Style Selector="PathIcon">
+      <Setter Property="Foreground" Value="{DynamicResource brush_foreground}"/>
+      <Setter Property="Width" Value="20"/>
+      <Setter Property="Height" Value="20"/>
+    </Style>
+    
+    <Style Selector="Button:disabled > PathIcon">
+      <Setter Property="Foreground" Value="Gray"/>
+    </Style>
+    
+    <Style Selector="ComboBox.EnumComboBox">
+      <Setter Property="ItemTemplate">
+        <Setter.Value>
+          <DataTemplate>
+            <TextBlock Text="{ReflectionBinding Converter={x:Static conv:EnumDescriptionConverter.Instance}}"/>
+          </DataTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style Selector=":is(TextBlock).Heading1">
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="FontSize" Value="20"/>
+    </Style>
+
+    <Style Selector=":is(TextBlock).PropertyName">
+      <Setter Property="HorizontalAlignment" Value="Left"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Margin" Value="0, 5, 30, 5"/>
+    </Style>
+
+    <Style Selector=":is(TextBlock).PropertyValue">
+      <Setter Property="HorizontalAlignment" Value="Right"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Margin" Value="0, 5, 0, 5"/>
+    </Style>
+
+    <Style Selector="TextBox.PropertyValue">
+      <Setter Property="HorizontalAlignment" Value="Right"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Margin" Value="0, 5, 0, 5"/>
+    </Style>
+
+    <Style Selector="v|EditableTextBlock.PropertyValue">
+      <Setter Property="HorizontalAlignment" Value="Right"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Margin" Value="0, 5, 0, 5"/>
+    </Style>
+
+    <Style Selector="ComboBox.PropertyValue">
+      <Setter Property="HorizontalAlignment" Value="Right"/>
+      <Setter Property="Margin" Value="0, 5, 0, 5"/>
+    </Style>
+
+    <Style Selector="CheckBox.PropertyValue">
+      <Setter Property="HorizontalAlignment" Value="Right"/>
+      <Setter Property="Margin" Value="0, 5, 0, 5"/>
+    </Style>
+
+    <Style Selector="Button.ok /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Content" Value="{x:Static r:Texts.Ok}" />
+    </Style>
+    <Style Selector="Button.yes /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Content" Value="{x:Static r:Texts.Yes}" />
+    </Style>
+    <Style Selector="Button.no /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Content" Value="{x:Static r:Texts.No}" />
+    </Style>
+    <Style Selector="Button.cancel /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Content" Value="{x:Static r:Texts.Cancel}" />
+    </Style>
+
+    <Style Selector="Border.Level1">
+      <Setter Property="BorderBrush" Value="Gray"/>
+      <Setter Property="BorderThickness" Value="2"/>
+      <Setter Property="CornerRadius" Value="5"/>
+    </Style>
+  </Application.Styles>
+
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="/Assets/CommonResources.axaml"/>
+        <ResourceInclude Source="/Views/EditableTextBlock.axaml"/>
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+
+    <Thickness x:Key="ExpanderHeaderPadding">5</Thickness>
+    <Thickness x:Key="ExpanderContentPadding">5</Thickness>
+
+    <sys:Double x:Key="AddonTileSize">75</sys:Double>
+  </Application.Resources>
+  
+</Application>

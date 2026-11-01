@@ -1,0 +1,60 @@
+<!-- Modified for EmberKit, based on ktxiaok/FireAxe 0.7.3; see MODIFICATIONS.md. -->
+<v:AddonNodeListItemView xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:FireAxe.ViewModels"
+             xmlns:v="using:FireAxe.Views"
+             xmlns:conv="using:FireAxe.ValueConverters"
+             mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="500"
+             x:Class="FireAxe.Views.AddonNodeTileView"
+             x:DataType="vm:AddonNodeListItemViewModel">
+  <Design.DataContext>
+    <vm:AddonNodeListItemViewModelDesign/>
+  </Design.DataContext>
+  <Panel
+      HorizontalAlignment="Center"
+      VerticalAlignment="Center">
+    <StackPanel
+      HorizontalAlignment="Center"
+      VerticalAlignment="Center">
+      <Panel
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center"
+        Margin="10">
+        <v:AddonIconView
+          Name="iconView"
+          ImageSize="{DynamicResource AddonTileSize}"
+          SpecialIconSize="{Binding $self.ImageSize}"/>
+      </Panel>
+      <Panel Height="30">
+        <TextBlock
+          Text="{Binding DisplayName}"
+          ToolTip.Tip="{Binding DisplayName}"
+          FontSize="12"
+          MaxWidth="{Binding #iconView.ImageSize}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          TextAlignment="Center"
+          TextWrapping="Wrap"
+          MaxLines="2"
+          TextTrimming="CharacterEllipsis"/>
+      </Panel>
+      <TextBlock Text="{Binding TargetSummary}" ToolTip.Tip="{Binding TargetEvidence}" FontSize="11" Foreground="#95BDF9"
+                 MaxWidth="{Binding #iconView.ImageSize}" TextAlignment="Center" TextWrapping="Wrap" MaxLines="2"
+                 TextTrimming="CharacterEllipsis" Margin="3,5,3,8"/>
+      <v:AddonNodeEnableButton HorizontalAlignment="Center"/>
+    </StackPanel>
+    <Path
+      Data="{StaticResource icon_warning}"
+      IsVisible="{Binding Addon.Problems.Count, Converter={x:Static conv:CollectionConverters.IsNotEmpty}, FallbackValue=False}"
+      Stretch="Uniform"
+      Fill="{DynamicResource brush_warning}"
+      Stroke="{DynamicResource brush_foreground}"
+      StrokeThickness="0.5"
+      Margin="5"
+      Width="22" Height="22"
+      HorizontalAlignment="Left"
+      VerticalAlignment="Top"/>
+  </Panel>
+</v:AddonNodeListItemView>

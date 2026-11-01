@@ -1,0 +1,33 @@
+<!-- Modified for EmberKit, based on ktxiaok/FireAxe 0.7.3; see MODIFICATIONS.md. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:FireAxe.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="100" d:DesignHeight="100"
+             x:Class="FireAxe.Views.AddonNodeEnableButton"
+             x:DataType="vm:AddonNodeSimpleViewModel">
+  <Design.DataContext>
+    <vm:AddonNodeViewModelDesign/>
+  </Design.DataContext>
+  
+  <StackPanel Spacing="3" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="4">
+    <ToggleSwitch Name="button" IsChecked="{Binding Addon.IsEnabled, Mode=TwoWay}"
+                  IsEnabled="{Binding Addon.IsValid, FallbackValue=False}"
+                  OnContent="已启用" OffContent="已禁用" MinWidth="125"
+                  AutomationProperties.Name="Mod 启用开关">
+      <ToggleSwitch.Styles>
+        <Style Selector="ToggleSwitch">
+          <Setter Property="ToolTip.Tip" Value="当前已禁用，点击启用此 Mod。"/>
+        </Style>
+        <Style Selector="ToggleSwitch:checked">
+          <Setter Property="ToolTip.Tip" Value="当前已启用，点击禁用此 Mod。"/>
+        </Style>
+      </ToggleSwitch.Styles>
+    </ToggleSwitch>
+    <TextBlock Text="待应用" Foreground="#FFCE8E" FontSize="11" HorizontalAlignment="Center"
+               IsVisible="{Binding !Addon.IsGameSynchronized, FallbackValue=False}" ToolTip.Tip="{Binding Addon.DeploymentStatus}"/>
+    <TextBlock Text="上级分组已禁用" Foreground="#A8BBD8" FontSize="11" HorizontalAlignment="Center"
+               IsVisible="{Binding !Addon.Group.IsEnabledInHierarchy, FallbackValue=False}"/>
+  </StackPanel>
+</UserControl>

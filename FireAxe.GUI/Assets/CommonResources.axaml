@@ -1,0 +1,51 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="using:System"
+                    xmlns:conv="using:FireAxe.ValueConverters">
+  <Design.PreviewWith>
+    <Border Width="500" Height="500" BorderBrush="Black" BorderThickness="10">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <TextBlock VerticalAlignment="Center">icon_question</TextBlock>
+        <PathIcon Margin="10" Width="20" Height="20" Foreground="{DynamicResource brush_foreground}" Data="{StaticResource icon_question}"></PathIcon>
+      </StackPanel>
+    </Border>
+  </Design.PreviewWith>
+
+  <ResourceDictionary.MergedDictionaries>
+    <ResourceInclude Source="Icons.axaml"/>
+  </ResourceDictionary.MergedDictionaries>
+
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Default">
+      <SolidColorBrush x:Key="brush_foreground">Black</SolidColorBrush>
+      <SolidColorBrush x:Key="brush_background">White</SolidColorBrush>
+      <SolidColorBrush x:Key="brush_enable_button_stroke">Black</SolidColorBrush>
+      <SolidColorBrush x:Key="brush_background_addon_list_item_selected">#FFB2C9FF</SolidColorBrush>
+      <SolidColorBrush x:Key="brush_background_addon_list_item_selected_pointerover">#FF99B8FF</SolidColorBrush>
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Light">
+      <SolidColorBrush x:Key="brush_foreground">Black</SolidColorBrush>
+      <SolidColorBrush x:Key="brush_background">White</SolidColorBrush>
+      <SolidColorBrush x:Key="brush_enable_button_stroke">Black</SolidColorBrush>
+      <SolidColorBrush x:Key="brush_background_addon_list_item_selected">#FFB2C9FF</SolidColorBrush>
+      <SolidColorBrush x:Key="brush_background_addon_list_item_selected_pointerover">#FF99B8FF</SolidColorBrush>
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="brush_foreground">White</SolidColorBrush>
+      <SolidColorBrush x:Key="brush_background">Black</SolidColorBrush>
+      <SolidColorBrush x:Key="brush_enable_button_stroke">LightGray</SolidColorBrush>
+      <SolidColorBrush x:Key="brush_background_addon_list_item_selected">#FF272F42</SolidColorBrush>
+      <SolidColorBrush x:Key="brush_background_addon_list_item_selected_pointerover">#FF303642</SolidColorBrush>
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+  
+  <BoxShadows x:Key="boxshadow_regular">0 0 5 2 #222</BoxShadows>
+  <sys:Double x:Key="size_addon_tile">100</sys:Double>
+  <sys:Double x:Key="size_addon_tile_small">75</sys:Double>
+  <sys:Double x:Key="size_addon_tile_large">150</sys:Double>
+
+  <SolidColorBrush x:Key="brush_warning">OrangeRed</SolidColorBrush>
+  <SolidColorBrush x:Key="brush_border_addon_list_item_selected">SteelBlue</SolidColorBrush>
+
+  <conv:ReadableBytesConverter x:Key="converter_readable_bytes"/>
+</ResourceDictionary>

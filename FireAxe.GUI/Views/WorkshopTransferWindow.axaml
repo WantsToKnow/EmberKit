@@ -1,0 +1,168 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:FireAxe.ViewModels" xmlns:v="using:FireAxe.Views"
+        x:Class="FireAxe.Views.WorkshopTransferWindow" x:DataType="vm:WorkshopTransferViewModel"
+        Title="工坊下载、分享与备份" Width="920" Height="820" MinWidth="760" MinHeight="690" WindowStartupLocation="CenterOwner">
+  <Grid RowDefinitions="Auto,*,Auto,Auto,180" Margin="18" RowSpacing="12">
+    <StackPanel Spacing="5">
+      <TextBlock Text="Steam 创意工坊" FontSize="24" FontWeight="SemiBold"/>
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+          <Button Content="主菜单应用" Command="{Binding ShowMainMenuReloadCommand}"/>
+          <Button Content="检查并修复入口" Command="{Binding SyncGameCommand}" ToolTip.Tip="将当前启用状态写入游戏加载清单，并建立顶层 VPK 文件链接。"/>
+        </StackPanel>
+        <TextBlock Text="求生之路 2 · 下载 · TXT 分享 · 备份与整理" Foreground="#98A8BE" VerticalAlignment="Center"/>
+      </DockPanel>
+    </StackPanel>
+    <TabControl Grid.Row="1" SelectedIndex="{Binding SelectedTab}" IsEnabled="{Binding !IsBusy}">
+      <TabItem Header="链接下载">
+        <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10" Margin="0,12,0,0">
+          <TextBlock Text="每行一个工坊链接或数字 ID。下载临时放入 firefox_temp；校验后归档到 modebackup，按开关自动应用到游戏。" TextWrapping="Wrap"/>
+          <TextBox Grid.Row="1" Text="{Binding LinkText}" AcceptsReturn="True" TextWrapping="Wrap" VerticalAlignment="Stretch"
+                   Watermark="https://steamcommunity.com/sharedfiles/filedetails/?id=…" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+          <StackPanel Grid.Row="2" Spacing="4">
+            <CheckBox Content="忽略工坊 Hash 校验（仍检查大小和 VPK 格式）" IsChecked="{Binding IgnoreWorkshopHash}"/>
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Content="加入下载队列" Command="{Binding DownloadCommand}"/>
+              <CheckBox Content="下载完成后自动启用" IsChecked="{Binding EnableDownloads}"/>
+            </DockPanel>
+          </StackPanel>
+        </Grid>
+      </TabItem>
+      <TabItem Header="导入 TXT">
+        <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10" Margin="0,12,0,0">
+          <TextBlock Text="打开别人分享的 TXT，或直接粘贴清单。会保留清单中的启用状态和优先级，下载工坊当前版本。" TextWrapping="Wrap"/>
+          <TextBox Grid.Row="1" Text="{Binding ImportText}" AcceptsReturn="True" TextWrapping="NoWrap" VerticalAlignment="Stretch" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+          <StackPanel Grid.Row="2" Spacing="4">
+            <CheckBox Content="忽略工坊 Hash 校验（仍检查大小和 VPK 格式）" IsChecked="{Binding IgnoreWorkshopHash}"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+              <Button Content="打开 TXT…" Command="{Binding LoadCommand}"/>
+              <Button Content="导入并下载" Command="{Binding ImportCommand}"/>
+            </StackPanel>
+          </StackPanel>
+        </Grid>
+      </TabItem>
+      <TabItem Header="导出 TXT">
+        <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10" Margin="0,12,0,0">
+          <TextBlock Text="核验本地 Mod 的工坊来源；改过文件名的会尝试按标题搜索并核对文件内容。无法确认、私有或已删除的先跳过，不上传本地文件。" TextWrapping="Wrap"/>
+          <TextBox Grid.Row="1" Text="{Binding ExportText}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" VerticalAlignment="Stretch" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+          <DockPanel Grid.Row="2">
+            <Button DockPanel.Dock="Right" Content="导出为 TXT…" Command="{Binding ExportCommand}"/>
+            <CheckBox Content="只导出当前启用的 Mod" IsChecked="{Binding EnabledOnly}"/>
+          </DockPanel>
+        </Grid>
+      </TabItem>
+      <TabItem Header="本地存储">
+        <ScrollViewer Margin="0,12,0,0">
+          <StackPanel Spacing="12">
+            <TextBlock Text="自动收集 addons 和 workshop 内的 VPK，实体集中到 modebackup，启用项在 addons 顶层建立 VPK 文件入口。游戏运行期间显示待应用：可点「主菜单应用」刷新，或退出后自动处理。" TextWrapping="Wrap"/>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+              <TextBox Text="{Binding GamePath}" Watermark="选择包含 left4dead2 文件夹的游戏根目录"/>
+              <Button Grid.Column="1" Content="选择游戏目录…" Command="{Binding ChooseGameCommand}"/>
+            </Grid>
+            <TextBlock Text="仅删除 SHA-256 完全相同的重复实体。不同枪皮、角色外观即使替换同一对象，也不会被当作重复删除。" TextWrapping="Wrap" Foreground="#FFBE72"/>
+            <TextBlock Text="本体以 m000001.vpk 等英文短编号保存在 modebackup；短编号、完整 SHA-256、原始名称、作用与工坊 ID 写入 mod-index.txt。编号分配会检查占用，避免覆盖其他文件。" TextWrapping="Wrap"/>
+            <TextBlock Text="游戏入口统一使用指向 modebackup 短编号本体的相对符号链接（通常显示 0 KB），不额外复制 Mod 内容。旧硬链接会在同步时转换；删除入口会保留备份本体。" TextWrapping="Wrap" Foreground="#98A8BE"/>
+            <TextBlock Text="这是可供游戏读取的 .vpk 符号链接，不是 Windows 的 .lnk 快捷方式。创建失败时会提示原因，不自动改用硬链接。" TextWrapping="Wrap" Foreground="#98A8BE"/>
+            <TextBlock Text="无效、占用中和指向外部目录的文件会跳过。此功能不解压 ZIP/7z，不整理 addons 之外的模组库。" TextWrapping="Wrap" Foreground="#98A8BE"/>
+            <Button Content="立即扫描、整理并核验游戏入口" Command="{Binding OrganizeCommand}" HorizontalAlignment="Left"/>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+      <TabItem Header="下载结果">
+        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10" Margin="0,12,0,0">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <StackPanel Spacing="4">
+              <TextBlock Text="保存目录" Foreground="#98A8BE"/>
+              <TextBlock Text="{Binding DownloadDirectory}" TextWrapping="Wrap"/>
+            </StackPanel>
+            <Button Grid.Column="1" Content="打开下载目录" Command="{Binding OpenDownloadDirectoryCommand}" VerticalAlignment="Center"/>
+          </Grid>
+          <DockPanel Grid.Row="1">
+            <Button DockPanel.Dock="Right" Content="刷新列表" Command="{Binding RefreshDownloadResultsCommand}"/>
+            <TextBlock Text="{Binding DownloadResultsSummary}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,8,0"/>
+          </DockPanel>
+          <Grid Grid.Row="2">
+            <TextBlock Text="还没有下载结果。下载完成或失败后会显示在这里。" Foreground="#98A8BE" IsVisible="{Binding !HasDownloadResults}"/>
+            <ListBox ItemsSource="{Binding DownloadResults}" IsVisible="{Binding HasDownloadResults}">
+              <ListBox.Styles>
+                <Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch"/></Style>
+              </ListBox.Styles>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:WorkshopDownloadResultViewModel">
+                  <Border Padding="8,10" BorderBrush="#343C4C" BorderThickness="0,0,0,1">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="5" ColumnSpacing="12">
+                      <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                      <TextBlock Grid.Column="1" Text="{Binding ResultText}" Foreground="{Binding StatusBrush}" VerticalAlignment="Center"/>
+                      <TextBlock Grid.Row="1" Text="{Binding WorkshopId}" Foreground="#98A8BE" FontSize="12"/>
+                      <StackPanel Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+                        <Button Content="打开文件位置" Command="{Binding OpenFileLocationCommand}" HorizontalAlignment="Stretch"/>
+                        <Button Content="{Binding RemoveText}" Command="{Binding RemoveRecordCommand}" HorizontalAlignment="Stretch"
+                                ToolTip.Tip="已安装的 Mod 只移除本条记录，保留本体；未安装的失败项会一并清理空条目。进行中的下载会继续。"/>
+                      </StackPanel>
+                      <TextBlock Grid.Row="2" Text="{Binding PathText}" TextWrapping="Wrap" FontSize="12" Foreground="#98A8BE"/>
+                      <TextBlock Grid.Row="3" Grid.ColumnSpan="2" Text="{Binding Detail}" TextWrapping="Wrap" FontSize="12"/>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Grid>
+        </Grid>
+      </TabItem>
+      <TabItem Header="主菜单应用">
+        <ScrollViewer Margin="0,12,0,0">
+          <StackPanel Spacing="14">
+            <TextBlock Text="主菜单刷新 Mod（实验）" FontSize="20" FontWeight="SemiBold"/>
+            <TextBlock Text="不用手动输入控制台命令。软件会返回主菜单、卸载旧附加内容、应用开关，再请求游戏重新挂载。" TextWrapping="Wrap"/>
+            <TextBlock Text="1. 首次用下方按钮启动游戏，等到主菜单。此后本次游戏运行期间都可以反复应用。" TextWrapping="Wrap"/>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Content="通过助手启动游戏" Command="{Binding LaunchGameCommand}"/>
+              <Button Content="检查游戏连接" Command="{Binding CheckGameConnectionCommand}"/>
+            </StackPanel>
+            <TextBlock Text="2. 在主窗口调整 Mod 开关，等需要的新 Mod 下载完成，再点下方按钮。" TextWrapping="Wrap"/>
+            <TextBlock Text="会断开当前地图或服务器，返回主菜单。操作期间请留在主菜单，暂勿进入地图。" TextWrapping="Wrap" Foreground="#FFBE72"/>
+            <Button Name="applyMainMenuButton" Content="返回主菜单并应用 Mod" Command="{Binding ApplyInMainMenuCommand}"
+                    HorizontalAlignment="Left" MinWidth="320" MinHeight="60" Padding="24,14"
+                    FontSize="18" FontWeight="Bold" CornerRadius="8"
+                    Background="#B8E99B" Foreground="#142112" BorderBrush="#B8E99B">
+              <Button.Styles>
+                <Style Selector="Button#applyMainMenuButton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                  <Setter Property="Background" Value="#CDF2B7"/>
+                </Style>
+                <Style Selector="Button#applyMainMenuButton:pressed /template/ ContentPresenter#PART_ContentPresenter">
+                  <Setter Property="Background" Value="#A3D786"/>
+                </Style>
+              </Button.Styles>
+            </Button>
+            <Border Background="#1A2231" CornerRadius="6" Padding="12">
+              <StackPanel Spacing="8">
+                <TextBlock Text="{Binding GameConnectionStatus}" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding LocalStorage.Status}" Foreground="#FFCE8E" TextWrapping="Wrap"/>
+              </StackPanel>
+            </Border>
+            <TextBlock Text="3. 显示游戏已确认重新挂载后，再进入新地图测试。模型、材质或脚本若仍沿用旧缓存，需要完整重启游戏。" TextWrapping="Wrap" Foreground="#98A8BE"/>
+            <TextBlock Text="本体仍保留在 modebackup。此操作只更新 VPK 入口与启用清单；整理旧目录和删除重复本体仍需退出游戏。" TextWrapping="Wrap" Foreground="#98A8BE"/>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+    </TabControl>
+    <Border Grid.Row="2" Background="#1A2231" Padding="10" CornerRadius="6">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Content="取消准备" Command="{Binding CancelCommand}" IsVisible="{Binding IsBusy}" Margin="8,0,0,0"/>
+        <TextBlock Text="{Binding Status}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+      </DockPanel>
+    </Border>
+    <Expander Grid.Row="3" Header="操作报告 / 跳过原因" HorizontalAlignment="Stretch">
+      <TextBox Text="{Binding Report}" IsReadOnly="True" AcceptsReturn="True" MaxHeight="100" TextWrapping="Wrap"/>
+    </Expander>
+    <Border Grid.Row="4" BorderBrush="#343C4C" BorderThickness="1" CornerRadius="6" Padding="8">
+      <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+          <Button DockPanel.Dock="Right" Content="{Binding DownloadResultsButton}" Command="{Binding ShowDownloadResultsCommand}"/>
+          <TextBlock Text="下载进度（关闭窗口后已入队的下载会继续）" FontWeight="SemiBold" VerticalAlignment="Center"/>
+        </DockPanel>
+        <v:DownloadItemListView DataContext="{Binding Downloads}"/>
+      </DockPanel>
+    </Border>
+  </Grid>
+</Window>

@@ -1,0 +1,79 @@
+<!-- Modified for EmberKit, based on ktxiaok/FireAxe 0.7.3; see MODIFICATIONS.md. -->
+<v:AddonNodeListItemView xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:v="using:FireAxe.Views"
+             xmlns:vm="using:FireAxe.ViewModels"
+             xmlns:conv="using:FireAxe.ValueConverters"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="100"
+             x:DataType="vm:AddonNodeListItemViewModel"
+             x:Class="FireAxe.Views.AddonNodeGridRowView">
+  <Design.DataContext>
+    <vm:AddonNodeListItemViewModelDesign/>
+  </Design.DataContext>
+  <Grid
+    RowDefinitions="Auto" ColumnDefinitions="64, *, 90, 75, Auto" MinHeight="62">
+    <Panel
+      Grid.Column="0"
+      Margin="5, 0, 5, 0">
+      <v:AddonIconView ImageSize="54" SpecialIconSize="{Binding $self.ImageSize}"/>
+    </Panel>
+    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="5" Margin="4,0,8,0">
+      <TextBlock Text="{Binding DisplayName}" ToolTip.Tip="{Binding DisplayName}" FontSize="14" FontWeight="SemiBold"
+                 TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/>
+      <TextBlock Text="{Binding WorkshopIdText}" FontSize="11" Foreground="#A8BBD8"
+                 IsVisible="{Binding WorkshopIdText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+      <TextBlock Text="{Binding TargetSummary}" ToolTip.Tip="{Binding TargetEvidence}" FontSize="12" Foreground="#95BDF9"
+                 TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/>
+    </StackPanel>
+    <Panel
+      Grid.Column="2"
+      ClipToBounds="True"
+      Margin="0, 0, 5, 0">
+      <Panel.Styles>
+        <Style Selector="TextBlock">
+          <Setter Property="FontSize" Value="11"/>
+        </Style>
+      </Panel.Styles>
+      <ItemsControl
+        ItemsSource="{Binding Addon.TagsInHierarchy}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Panel Margin="2">
+              <v:AddonTagView/>
+            </Panel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel/>
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+      </ItemsControl>
+    </Panel>
+    <TextBlock
+      Grid.Column="3"
+      IsVisible="{Binding Addon.FileSize, Converter={x:Static ObjectConverters.IsNotNull}}"
+      Text="{Binding Addon.FileSize, Converter={StaticResource converter_readable_bytes}}"
+      ToolTip.Tip="VPK 本体大小（文件链接按目标文件计算）"
+      VerticalAlignment="Center"
+      TextTrimming="CharacterEllipsis"/>
+    <Grid
+      Grid.Column="4"
+      RowDefinitions="*"
+      ColumnDefinitions="Auto, Auto"
+      HorizontalAlignment="Right"
+      VerticalAlignment="Center"
+      Margin="5, 0, 5, 0">
+      <PathIcon
+        Grid.Column="0"
+        Data="{StaticResource icon_warning}"
+        IsVisible="{Binding Addon.Problems.Count, Converter={x:Static conv:CollectionConverters.IsNotEmpty}, FallbackValue=False}"
+        Foreground="{DynamicResource brush_warning}"
+        Width="20" Height="20"
+        Margin="5, 0, 5, 0"/>
+      <v:AddonNodeEnableButton Grid.Column="1"/>
+    </Grid>
+  </Grid>
+</v:AddonNodeListItemView>
