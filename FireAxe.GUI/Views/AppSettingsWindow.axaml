@@ -1,0 +1,401 @@
+<!-- Modified for EmberKit, based on ktxiaok/FireAxe 0.7.3; see MODIFICATIONS.md. -->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:r="using:FireAxe.Resources"
+        xmlns:vm="using:FireAxe.ViewModels"
+        xmlns:v="using:FireAxe.Views"
+        xmlns:conv="using:FireAxe.ValueConverters"
+        xmlns:me="using:FireAxe.MarkupExtensions"
+        xmlns:dt="using:FireAxe.DataTemplates"
+        xmlns:local="using:FireAxe"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="2000"
+        x:Class="FireAxe.Views.AppSettingsWindow"
+        x:DataType="vm:AppSettingsViewModel"
+        Title="{x:Static r:Texts.Settings}"
+        Width="600" Height="600"
+        WindowStartupLocation="CenterScreen">
+  <Window.DataTemplates>
+    <dt:ExceptionExplainer Scene="Input"/>
+  </Window.DataTemplates>
+  <ScrollViewer
+    VerticalScrollBarVisibility="Visible">
+    <StackPanel
+      Orientation="Vertical"
+      Margin="15">
+      <!--settings file location note-->
+      <DockPanel
+        LastChildFill="False"
+        Margin="0, 5, 0, 5">
+        <SelectableTextBlock
+          DockPanel.Dock="Left"
+          Text="{Binding Settings.SettingsFilePath, StringFormat={x:Static r:Texts.AppSettingsFileLocationNote}}"
+          TextWrapping="Wrap"
+          TextAlignment="Left"
+          MaxWidth="400"
+          VerticalAlignment="Center"/>
+        <Control DockPanel.Dock="Left" Width="10"/>
+        <Button
+          DockPanel.Dock="Left"
+          Command="{Binding ShowSettingsFileCommand}"
+          Content="{x:Static r:Texts.Open}"/>
+      </DockPanel>
+
+      <!--user interface-->
+      <TextBlock
+        Text="{x:Static r:Texts.UserInterface}"
+        Classes="Heading1"
+        Margin="0, 5, 0, 2.5"/>
+      <Border
+        Classes="Level1"
+        Margin="0, 2.5, 0, 5"
+        Padding="5">
+        <StackPanel Orientation="Vertical">
+          <!--language-->
+          <DockPanel>
+            <StackPanel
+              DockPanel.Dock="Left"
+              Orientation="Horizontal">
+              <TextBlock
+                Classes="PropertyName"
+                Text="{x:Static r:Texts.Language}"/>
+              <TextBlock
+                Classes="PropertyName"
+                Text="{x:Static r:Texts.NeedRestartHint}"/>
+            </StackPanel>
+            <ComboBox
+              Classes="PropertyValue"
+              ItemsSource="{Binding LanguageItemsSource}"
+              SelectedItem="{Binding Settings.Language}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{ReflectionBinding Converter={x:Static conv:LanguageNativeNameConverter.Instance}}"/>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </DockPanel>
+
+          <!--color theme-->
+          <DockPanel>
+            <TextBlock
+              DockPanel.Dock="Left"
+              Classes="PropertyName"
+              Text="{x:Static r:Texts.ColorTheme}"/>
+            <ComboBox
+              Classes="EnumComboBox PropertyValue"
+              ItemsSource="{Binding Source={me:EnumValues {x:Type local:AppColorTheme}}}"
+              SelectedItem="{Binding Settings.ColorTheme}"/>
+          </DockPanel>
+        </StackPanel>
+      </Border>
+
+      <!--game information-->
+      <TextBlock
+        Text="{x:Static r:Texts.GameInformation}"
+        Classes="Heading1"
+        Margin="0, 5, 0, 2.5"/>
+      <Border
+        Classes="Level1"
+        Margin="0, 2.5, 0, 5"
+        Padding="5">
+        <StackPanel Orientation="Vertical">
+          <!--game path-->
+          <TextBlock
+            Classes="PropertyName"
+            Text="{x:Static r:Texts.GamePath}"/>
+          <StackPanel
+            Orientation="Horizontal"
+            HorizontalAlignment="Left">
+            <TextBox
+              Text="{Binding Settings.GamePath}"
+              Width="350" 
+              Margin="0, 5, 5, 5"/>
+            <Button
+              Command="{Binding SelectGamePathCommand}"
+              Content="{x:Static r:Texts.Select}"
+              Margin="5"/>
+            <Button
+              Command="{Binding FindGamePathCommand}"
+              Content="{x:Static r:Texts.Find}"
+              Margin="5"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!--VPK addon conflict-->
+      <TextBlock
+        Text="{x:Static r:Texts.VpkAddonConflict}"
+        Classes="Heading1"
+        Margin="0, 5, 0, 2.5"/>
+      <Border
+        Classes="Level1"
+        Margin="0, 2.5, 0, 5"
+        Padding="5">
+        <StackPanel Orientation="Vertical">
+          <!--ignore Half Life 2 files for VPK addon conficts-->
+          <DockPanel>
+            <TextBlock
+              DockPanel.Dock="Left"
+              Text="{x:Static r:Texts.IgnoreHalfLife2FilesForVpkAddonConflicts}"
+              Classes="PropertyName"/>
+            <CheckBox
+              IsChecked="{Binding Settings.IgnoreHalfLife2FilesForVpkAddonConflicts}"
+              Classes="PropertyValue"/>
+          </DockPanel>
+
+          <!--customize VPK addon conflict ignoring files note-->
+          <DockPanel
+            LastChildFill="False"
+            Margin="0, 5, 0, 5">
+            <SelectableTextBlock
+              DockPanel.Dock="Left"
+              Text="{Binding Settings.CustomVpkAddonConflictIgnoringFilesDirectoryPath, StringFormat={x:Static r:Texts.CustomizeVpkAddonConflictIgnoringFilesNote}}"
+              TextWrapping="Wrap"
+              TextAlignment="Left"
+              MaxWidth="400"
+              VerticalAlignment="Center"/>
+            <Control DockPanel.Dock="Left" Width="10"/>
+            <Button
+              DockPanel.Dock="Left"
+              Command="{Binding OpenCustomVpkAddonConflictIgnoringFilesDirectory}"
+              Content="{x:Static r:Texts.Open}"/>
+            <Control DockPanel.Dock="Left" Width="10"/>
+            <Button
+              DockPanel.Dock="Left"
+              Command="{Binding Settings.LoadCustomVpkAddonConflictIgnoringFilesCommand}"
+              Content="{x:Static r:Texts.Refresh}"/>
+            <TextBlock
+              DockPanel.Dock="Left"
+              Text="{x:Static r:Texts.RefreshingHint}"
+              IsVisible="{Binding Settings.IsLoadingCustomVpkAddonConflictIgnoringFiles, FallbackValue=False}"
+              VerticalAlignment="Center"
+              Margin="10, 0, 10, 0"/>
+          </DockPanel>
+        </StackPanel>
+      </Border>
+
+      <!--workshop-->
+      <TextBlock
+        Text="{x:Static r:Texts.Workshop}"
+        Classes="Heading1"
+        Margin="0, 5, 0, 2.5"/>
+      <Border
+        Classes="Level1"
+        Margin="0, 2.5, 0, 5"
+        Padding="5">
+        <StackPanel Orientation="Vertical">
+          <!--auto detect workshop item link in clipboard-->
+          <DockPanel>
+            <TextBlock
+              DockPanel.Dock="Left"
+              Classes="PropertyName"
+              Text="{x:Static r:Texts.AutoDetectWorkshopItemLinkInClipboard}"/>
+            <CheckBox
+              Classes="PropertyValue"
+              IsChecked="{Binding Settings.IsAutoDetectWorkshopItemLinkInClipboard}"/>
+          </DockPanel>
+        </StackPanel>
+      </Border>
+
+      <!--download-->
+      <TextBlock
+        Text="{x:Static r:Texts.Download}"
+        Classes="Heading1"
+        Margin="0, 5, 0, 2.5"/>
+      <Border
+        Classes="Level1"
+        Margin="0, 2.5, 0, 5"
+        Padding="5">
+        <StackPanel Orientation="Vertical">
+          <!--auto redownload-->
+          <DockPanel>
+            <TextBlock
+              DockPanel.Dock="Left"
+              Classes="PropertyName"
+              Text="{x:Static r:Texts.AutoRedownload}"/>
+            <CheckBox
+              Classes="PropertyValue"
+              IsChecked="{Binding Settings.IsAutoRedownload}"/>
+          </DockPanel>
+        </StackPanel>
+      </Border>
+
+      <!--web proxy-->
+      <StackPanel
+        Orientation="Horizontal"
+        Margin="0, 5, 0, 2.5">
+        <TextBlock
+          Text="{x:Static r:Texts.WebProxy}"
+          Classes="Heading1"/>
+        <TextBlock
+          Text="{x:Static r:Texts.NeedRestartHint}"
+          Margin="2.5, 0, 0, 0"
+          VerticalAlignment="Center"/>
+      </StackPanel>
+      <Border
+        Classes="Level1"
+        Margin="0, 2.5, 0, 5"
+        Padding="5">
+        <StackPanel Orientation="Vertical">
+          <!--web proxy address-->
+          <TextBlock
+            Text="{x:Static r:Texts.WebProxyAddress}"
+            Margin="0, 5, 0, 2.5"/>
+          <v:EditableTextBlock
+            Value="{Binding Settings.WebProxyAddress}"
+            Display="{Binding Settings.WebProxyAddress, Converter={x:Static conv:StringConverters.ShowEmpty}}"
+            Margin="0, 2.5, 0, 5"
+            HorizontalAlignment="Left"/>
+
+          <!--web proxy credential user name-->
+          <TextBlock
+            Text="{x:Static r:Texts.WebProxyCredentialUserName}"
+            Margin="0, 5, 0, 2.5"/>
+          <v:EditableTextBlock
+            Value="{Binding Settings.WebProxyCredentialUserName}"
+            Display="{Binding Settings.WebProxyCredentialUserName, Converter={x:Static conv:StringConverters.ShowEmpty}}"
+            Margin="0, 2.5, 0, 5"
+            HorizontalAlignment="Left"/>
+
+          <!--web proxy credential password-->
+          <TextBlock
+            Text="{x:Static r:Texts.WebProxyCredentialPassword}"
+            Margin="0, 5, 0, 2.5"/>
+          <v:EditableTextBlock
+            Value="{Binding Settings.WebProxyCredentialPassword}"
+            Display="{x:Static r:Texts.Hidden}"
+            Margin="0, 2.5, 0, 5"
+            HorizontalAlignment="Left"/>
+        </StackPanel>
+      </Border>
+
+      <!--file backup-->
+      <TextBlock
+        Text="{x:Static r:Texts.FileBackup}"
+        Classes="Heading1"
+        Margin="0, 5, 0, 2.5"/>
+      <Border
+        Classes="Level1"
+        Margin="0, 2.5, 0, 5"
+        Padding="5">
+        <StackPanel Orientation="Vertical">
+          <!--file backup enablement-->
+          <DockPanel>
+            <TextBlock
+              DockPanel.Dock="Left"
+              Classes="PropertyName"
+              Text="{x:Static r:Texts.FileBackup}"/>
+            <CheckBox
+              Classes="PropertyValue"
+              IsChecked="{Binding Settings.IsFileBackupEnabled}"/>
+          </DockPanel>
+
+          <!--max retained backup file count-->
+          <DockPanel IsVisible="{Binding Settings.IsFileBackupEnabled}">
+            <TextBlock
+              DockPanel.Dock="Left"
+              Classes="PropertyName"
+              Text="{x:Static r:Texts.MaxRetainedBackupFileCount}"/>
+            <v:EditableTextBlock
+              Classes="PropertyValue"
+              Value="{Binding MaxRetainedBackupFileCount}"/>
+          </DockPanel>
+
+          <!--file backup interval minutes-->
+          <DockPanel IsVisible="{Binding Settings.IsFileBackupEnabled}">
+            <TextBlock
+              DockPanel.Dock="Left"
+              Classes="PropertyName"
+              Text="{x:Static r:Texts.FileBackupIntervalMinutes}"/>
+            <v:EditableTextBlock
+              Classes="PropertyValue"
+              Value="{Binding FileBackupIntervalMinutes}"/>
+          </DockPanel>
+
+          <!--file backup directory location note-->
+          <StackPanel
+            Orientation="Horizontal"
+            Margin="0, 5, 0, 5">
+            <TextBlock
+              Text="{x:Static r:Texts.AddonRootBackupDirectoryLocationNote}"
+              VerticalAlignment="Center"/>
+            <Control Width="10"/>
+            <Button
+              Command="{Binding OpenBackupDirectoryCommand}"
+              Content="{x:Static r:Texts.Open}"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!--process file customization-->
+      <TextBlock
+        Text="{x:Static r:Texts.ProcessFileCustomization}"
+        Classes="Heading1"
+        Margin="0, 5, 0, 2.5"/>
+      <Border
+        Classes="Level1"
+        Margin="0, 2.5, 0, 5"
+        Padding="5">
+        <StackPanel Orientation="Vertical">
+          <!--open directory-->
+          <TextBlock
+            Text="{x:Static r:Texts.OpenDirectory}"
+            Margin="0, 5, 0, 0"
+            VerticalAlignment="Center"/>
+          <DockPanel>
+            <TextBlock
+              DockPanel.Dock="Left"
+              Text="{x:Static r:Texts.ProcessFileName}"
+              Classes="PropertyName"/>
+            <v:EditableTextBlock
+              Classes="PropertyValue"
+              Value="{Binding Settings.OpenDirectoryCustomProcessFileName}"
+              Display="{Binding Settings.OpenDirectoryCustomProcessFileName, Converter={x:Static conv:StringConverters.ShowEmpty}}"/>
+          </DockPanel>
+          <DockPanel>
+            <TextBlock
+              DockPanel.Dock="Left"
+              Text="{x:Static r:Texts.ProcessArguments}"
+              Classes="PropertyName"/>
+            <v:EditableTextBlock
+              Classes="PropertyValue"
+              Value="{Binding Settings.OpenDirectoryCustomProcessArguments}"
+              Display="{Binding Settings.OpenDirectoryCustomProcessArguments, Converter={x:Static conv:StringConverters.ShowEmpty}}"
+              Watermark="{x:Static r:Texts.OpenDirectoryCustomProcessArgumentsWatermark}"/>
+          </DockPanel>
+
+          <Control Height="15"/>
+
+          <!--show file-->
+          <TextBlock
+            Text="{x:Static r:Texts.ShowFile}"
+            Margin="0, 5, 0, 0"
+            VerticalAlignment="Center"/>
+          <DockPanel>
+            <TextBlock
+              DockPanel.Dock="Left"
+              Text="{x:Static r:Texts.ProcessFileName}"
+              Classes="PropertyName"/>
+            <v:EditableTextBlock
+              Classes="PropertyValue"
+              Value="{Binding Settings.ShowFileCustomProcessFileName}"
+              Display="{Binding Settings.ShowFileCustomProcessFileName, Converter={x:Static conv:StringConverters.ShowEmpty}}"/>
+          </DockPanel>
+          <DockPanel>
+            <TextBlock
+              DockPanel.Dock="Left"
+              Text="{x:Static r:Texts.ProcessArguments}"
+              Classes="PropertyName"/>
+            <v:EditableTextBlock
+              Classes="PropertyValue"
+              Value="{Binding Settings.ShowFileCustomProcessArguments}"
+              Display="{Binding Settings.ShowFileCustomProcessArguments, Converter={x:Static conv:StringConverters.ShowEmpty}}"
+              Watermark="{x:Static r:Texts.ShowFileCustomProcessArgumentsWatermark}"/>
+          </DockPanel>
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+</Window>

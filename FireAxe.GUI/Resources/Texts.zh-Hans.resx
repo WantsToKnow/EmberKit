@@ -1,0 +1,1178 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Abort" xml:space="preserve">
+    <value>终止</value>
+  </data>
+  <data name="AboutApp" xml:space="preserve">
+    <value>关于FireAxe</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>添加</value>
+  </data>
+  <data name="AddonChildProblemExplain" xml:space="preserve">
+    <value>子项目中存在问题。</value>
+  </data>
+  <data name="AddonFileNotExistProblemExplain" xml:space="preserve">
+    <value>对应的文件“{0}”不存在。</value>
+  </data>
+  <data name="AddonGroupEnableStrategyProblemExplain" xml:space="preserve">
+    <value>组的启用策略未正确应用。</value>
+  </data>
+  <data name="AddonMoveDeniedMessage" xml:space="preserve">
+    <value>模组“{0}”拒绝了移动或重命名。可能存在正在进行的任务（如下载任务）。请稍后再试。</value>
+  </data>
+  <data name="AddTag" xml:space="preserve">
+    <value>添加标签</value>
+  </data>
+  <data name="All" xml:space="preserve">
+    <value>所有</value>
+  </data>
+  <data name="AppDescription" xml:space="preserve">
+    <value>一个管理求生之路2模组的工具。</value>
+  </data>
+  <data name="ApplyTagsFromWorkshop" xml:space="preserve">
+    <value>应用创意工坊标签</value>
+  </data>
+  <data name="Ascending" xml:space="preserve">
+    <value>升序</value>
+  </data>
+  <data name="AuthorColon" xml:space="preserve">
+    <value>作者：</value>
+  </data>
+  <data name="AutoDetectWorkshopItemLinkDialogMessage" xml:space="preserve">
+    <value>检测到你复制了一个创意工坊物品链接（{0}）。你想要创建一个创意工坊模组吗？</value>
+  </data>
+  <data name="AutoDetectWorkshopItemLinkInClipboard" xml:space="preserve">
+    <value>自动检测剪切板内的创意工坊链接</value>
+  </data>
+  <data name="AutoRedownload" xml:space="preserve">
+    <value>自动重新下载</value>
+  </data>
+  <data name="AutoSetName" xml:space="preserve">
+    <value>自动设置名称</value>
+  </data>
+  <data name="AutoUpdateStrategy" xml:space="preserve">
+    <value>自动更新策略</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="CancelMove" xml:space="preserve">
+    <value>取消移动</value>
+  </data>
+  <data name="FailedToMoveItemWithName" xml:space="preserve">
+    <value>未能移动项目“{0}”。</value>
+  </data>
+  <data name="Check" xml:space="preserve">
+    <value>检查</value>
+  </data>
+  <data name="CheckAllTip" xml:space="preserve">
+    <value>检查所有的模组以保持它们的状态最新。</value>
+  </data>
+  <data name="CheckForUpdates" xml:space="preserve">
+    <value>检查更新</value>
+  </data>
+  <data name="CheckingForUpdatesMessage" xml:space="preserve">
+    <value>正在检查更新...</value>
+  </data>
+  <data name="ClearAllCachesTip" xml:space="preserve">
+    <value>清除所有模组的缓存。</value>
+  </data>
+  <data name="ClearCaches" xml:space="preserve">
+    <value>清除缓存</value>
+  </data>
+  <data name="CloseDirectory" xml:space="preserve">
+    <value>关闭目录</value>
+  </data>
+  <data name="CollectionId" xml:space="preserve">
+    <value>合集ID</value>
+  </data>
+  <data name="ColorTheme" xml:space="preserve">
+    <value>颜色主题</value>
+  </data>
+  <data name="ConfirmDelete" xml:space="preserve">
+    <value>确认删除</value>
+  </data>
+  <data name="ConfirmDeleteMessage" xml:space="preserve">
+    <value>你确定要删除选中的项目吗？此操作无法撤销。</value>
+  </data>
+  <data name="ConfirmDeleteTagCompletely" xml:space="preserve">
+    <value>你确定要彻底删除选中的标签吗？</value>
+  </data>
+  <data name="ConfirmOpenHigherVersionFileMessage" xml:space="preserve">
+    <value>正在打开高版本的文件。这将会导致文件信息丢失。你确定要继续吗？</value>
+  </data>
+  <data name="ConflictIgnoringFiles" xml:space="preserve">
+    <value>冲突忽略文件</value>
+  </data>
+  <data name="ConflictingAddons" xml:space="preserve">
+    <value>冲突模组</value>
+  </data>
+  <data name="ConflictingDetails" xml:space="preserve">
+    <value>冲突详情</value>
+  </data>
+  <data name="ConflictingFiles" xml:space="preserve">
+    <value>冲突文件</value>
+  </data>
+  <data name="Create" xml:space="preserve">
+    <value>创建</value>
+  </data>
+  <data name="CreateCollectionFailedMessage" xml:space="preserve">
+    <value>创建合集失败。请重试。</value>
+  </data>
+  <data name="CreationTimeColon" xml:space="preserve">
+    <value>创建时间：</value>
+  </data>
+  <data name="CurrentVersionLatestMessage" xml:space="preserve">
+    <value>当前版本已是最新版本。</value>
+  </data>
+  <data name="CustomizePreviewImage" xml:space="preserve">
+    <value>自定义预览图像</value>
+  </data>
+  <data name="Default" xml:space="preserve">
+    <value>默认</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="DeleteAndRetainFile" xml:space="preserve">
+    <value>删除并保留文件</value>
+  </data>
+  <data name="DeleteCompletely" xml:space="preserve">
+    <value>彻底删除</value>
+  </data>
+  <data name="DeleteTagCompletelyTip" xml:space="preserve">
+    <value>（包括所有模组中的标签）</value>
+  </data>
+  <data name="Descending" xml:space="preserve">
+    <value>降序</value>
+  </data>
+  <data name="DescriptionColon" xml:space="preserve">
+    <value>描述：</value>
+  </data>
+  <data name="Disable" xml:space="preserve">
+    <value>禁用</value>
+  </data>
+  <data name="DisableRecursively" xml:space="preserve">
+    <value>递归禁用（包括所有子项目）</value>
+  </data>
+  <data name="DontOpenGameAddonsDirectory" xml:space="preserve">
+    <value>不要去打开目录“left4dead2/addons”。</value>
+  </data>
+  <data name="Download" xml:space="preserve">
+    <value>下载</value>
+  </data>
+  <data name="DownloadList" xml:space="preserve">
+    <value>下载列表</value>
+  </data>
+  <data name="Empty" xml:space="preserve">
+    <value>空</value>
+  </data>
+  <data name="Enable" xml:space="preserve">
+    <value>启用</value>
+  </data>
+  <data name="EnabledOrDisabled" xml:space="preserve">
+    <value>启用/禁用</value>
+  </data>
+  <data name="EnableRecursively" xml:space="preserve">
+    <value>递归启用（包括所有子项目）</value>
+  </data>
+  <data name="EnableStrategy" xml:space="preserve">
+    <value>启用策略</value>
+  </data>
+  <data name="Enum_AddonGroupEnableStrategy_All" xml:space="preserve">
+    <value>全部</value>
+  </data>
+  <data name="Enum_AddonGroupEnableStrategy_None" xml:space="preserve">
+    <value>无</value>
+  </data>
+  <data name="Enum_AddonGroupEnableStrategy_Single" xml:space="preserve">
+    <value>唯一</value>
+  </data>
+  <data name="Enum_AddonGroupEnableStrategy_SingleRandom" xml:space="preserve">
+    <value>随机唯一</value>
+  </data>
+  <data name="Enum_AddonNodeListItemViewKind_Grid" xml:space="preserve">
+    <value>表格视图</value>
+  </data>
+  <data name="Enum_AddonNodeListItemViewKind_LargeTile" xml:space="preserve">
+    <value>大瓦片视图</value>
+  </data>
+  <data name="Enum_AddonNodeListItemViewKind_MediumTile" xml:space="preserve">
+    <value>瓦片视图</value>
+  </data>
+  <data name="Enum_AddonNodeListItemViewKind_SmallTile" xml:space="preserve">
+    <value>小瓦片视图</value>
+  </data>
+  <data name="Enum_AddonNodeSortMethod_CreationTime" xml:space="preserve">
+    <value>按创建时间排序</value>
+  </data>
+  <data name="Enum_AddonNodeSortMethod_None" xml:space="preserve">
+    <value>无排序</value>
+  </data>
+  <data name="Enum_AddonNodeSortMethod_EnableState" xml:space="preserve">
+    <value>按启用状态排序</value>
+  </data>
+  <data name="Enum_AddonNodeSortMethod_FileCreationTime" xml:space="preserve">
+    <value>按文件创建时间排序</value>
+  </data>
+  <data name="Enum_AddonNodeSortMethod_FileSize" xml:space="preserve">
+    <value>按文件大小排序</value>
+  </data>
+  <data name="Enum_AddonNodeSortMethod_Name" xml:space="preserve">
+    <value>按名称排序</value>
+  </data>
+  <data name="Enum_AddonNodeSortMethod_Tag" xml:space="preserve">
+    <value>按标签排序</value>
+  </data>
+  <data name="Enum_AddonTagFilterMode_And" xml:space="preserve">
+    <value>与</value>
+  </data>
+  <data name="Enum_AddonTagFilterMode_Not" xml:space="preserve">
+    <value>非</value>
+  </data>
+  <data name="Enum_AddonTagFilterMode_Or" xml:space="preserve">
+    <value>或</value>
+  </data>
+  <data name="Enum_AppColorTheme_Dark" xml:space="preserve">
+    <value>深色</value>
+  </data>
+  <data name="Enum_AppColorTheme_Default" xml:space="preserve">
+    <value>默认</value>
+  </data>
+  <data name="Enum_AppColorTheme_Light" xml:space="preserve">
+    <value>浅色</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>错误</value>
+  </data>
+  <data name="ExceptionOccurMessage" xml:space="preserve">
+    <value>在操作中发生了异常！</value>
+  </data>
+  <data name="FailedToGetLatestVersion" xml:space="preserve">
+    <value>获取最新版本失败。</value>
+  </data>
+  <data name="FavoritesColon" xml:space="preserve">
+    <value>收藏量：</value>
+  </data>
+  <data name="File" xml:space="preserve">
+    <value>文件</value>
+  </data>
+  <data name="FileDownloadUncompleted" xml:space="preserve">
+    <value>文件未下载完成！</value>
+  </data>
+  <data name="FileSizeColon" xml:space="preserve">
+    <value>文件大小：</value>
+  </data>
+  <data name="Filter" xml:space="preserve">
+    <value>筛选器</value>
+  </data>
+  <data name="FilterEnabledMessage" xml:space="preserve">
+    <value>筛选器已启用</value>
+  </data>
+  <data name="Flatten" xml:space="preserve">
+    <value>展平</value>
+  </data>
+  <data name="FlatVpkList" xml:space="preserve">
+    <value>扁平VPK列表</value>
+  </data>
+  <data name="GamePath" xml:space="preserve">
+    <value>游戏路径</value>
+  </data>
+  <data name="GetPublishedFileDetailsProblemExplain" xml:space="preserve">
+    <value>获取发布文件详情失败。</value>
+  </data>
+  <data name="GoToDownload" xml:space="preserve">
+    <value>去下载</value>
+  </data>
+  <data name="Group" xml:space="preserve">
+    <value>组</value>
+  </data>
+  <data name="Help" xml:space="preserve">
+    <value>帮助</value>
+  </data>
+  <data name="Ignore" xml:space="preserve">
+    <value>忽略</value>
+  </data>
+  <data name="IgnoreAll" xml:space="preserve">
+    <value>忽略全部</value>
+  </data>
+  <data name="IgnoreCase" xml:space="preserve">
+    <value>忽略大小写</value>
+  </data>
+  <data name="ImagePathColon" xml:space="preserve">
+    <value>图片路径：</value>
+  </data>
+  <data name="Import" xml:space="preserve">
+    <value>导入</value>
+  </data>
+  <data name="ImportErrorMessage" xml:space="preserve">
+    <value>导入失败。</value>
+  </data>
+  <data name="ImportSuccessMessage" xml:space="preserve">
+    <value>导入成功。</value>
+  </data>
+  <data name="ImportTip" xml:space="preserve">
+    <value>导入现有的文件为模组项。</value>
+  </data>
+  <data name="IncludeEnabledAddonsOnly" xml:space="preserve">
+    <value>仅包含已启用的模组</value>
+  </data>
+  <data name="IncludeLinkedCollections" xml:space="preserve">
+    <value>包括链接的合集</value>
+  </data>
+  <data name="IncludeName" xml:space="preserve">
+    <value>包括名称</value>
+  </data>
+  <data name="IncludeVpkDescription" xml:space="preserve">
+    <value>包括VPK描述</value>
+  </data>
+  <data name="IncludeWorkshopDescription" xml:space="preserve">
+    <value>包括创意工坊描述</value>
+  </data>
+  <data name="InputCannotBeEmptyMessage" xml:space="preserve">
+    <value>输入不能为空。</value>
+  </data>
+  <data name="InputPublishedFileIdHint" xml:space="preserve">
+    <value>输入数字或链接</value>
+  </data>
+  <data name="InputTagNameMessage" xml:space="preserve">
+    <value>请输入标签名称：</value>
+  </data>
+  <data name="InvalidCollectionIdMessage" xml:space="preserve">
+    <value>无效的合集ID。</value>
+  </data>
+  <data name="InvalidGamePathMessage" xml:space="preserve">
+    <value>游戏路径“{0}”无效。</value>
+  </data>
+  <data name="InvalidInputMessage" xml:space="preserve">
+    <value>无效输入</value>
+  </data>
+  <data name="AddonNodeInvalidMoveMessage" xml:space="preserve">
+    <value>无效的移动：目标组不能是源组的子组。</value>
+  </data>
+  <data name="InvalidPublishedFileIdMessage" xml:space="preserve">
+    <value>无效的发布文件ID。</value>
+  </data>
+  <data name="ItemId" xml:space="preserve">
+    <value>项目ID</value>
+  </data>
+  <data name="ItemNameExists" xml:space="preserve">
+    <value>项目名称已存在。</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>语言</value>
+  </data>
+  <data name="LifetimeFavoritesColon" xml:space="preserve">
+    <value>所有收藏量：</value>
+  </data>
+  <data name="LifetimeSubscriptionsColon" xml:space="preserve">
+    <value>所有订阅量：</value>
+  </data>
+  <data name="More" xml:space="preserve">
+    <value>更多</value>
+  </data>
+  <data name="Move" xml:space="preserve">
+    <value>移动</value>
+  </data>
+  <data name="MoveDown" xml:space="preserve">
+    <value>下移</value>
+  </data>
+  <data name="MoveHere" xml:space="preserve">
+    <value>移动到这里</value>
+  </data>
+  <data name="MoveUp" xml:space="preserve">
+    <value>上移</value>
+  </data>
+  <data name="MovingColon" xml:space="preserve">
+    <value>正在移动：</value>
+  </data>
+  <data name="MultipleItemsSelected" xml:space="preserve">
+    <value>已选中{0}个项目。</value>
+  </data>
+  <data name="NeedRestartHint" xml:space="preserve">
+    <value>（需要重启）</value>
+  </data>
+  <data name="New" xml:space="preserve">
+    <value>新建</value>
+  </data>
+  <data name="NewTag" xml:space="preserve">
+    <value>新建标签</value>
+  </data>
+  <data name="NewVersionAvailable" xml:space="preserve">
+    <value>有可用的新版本：{0}</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>否</value>
+  </data>
+  <data name="NoAvailableName" xml:space="preserve">
+    <value>无可用名称</value>
+  </data>
+  <data name="None" xml:space="preserve">
+    <value>无</value>
+  </data>
+  <data name="Null" xml:space="preserve">
+    <value>空</value>
+  </data>
+  <data name="Ok" xml:space="preserve">
+    <value>确定</value>
+  </data>
+  <data name="Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="OpenDirectory" xml:space="preserve">
+    <value>打开目录</value>
+  </data>
+  <data name="OpenDirectoryTip" xml:space="preserve">
+    <value>打开一个存储模组的目录。</value>
+  </data>
+  <data name="OpenWorkshopPage" xml:space="preserve">
+    <value>打开创意工坊页面</value>
+  </data>
+  <data name="Operations" xml:space="preserve">
+    <value>操作</value>
+  </data>
+  <data name="Pause" xml:space="preserve">
+    <value>暂停</value>
+  </data>
+  <data name="PreparingMessage" xml:space="preserve">
+    <value>准备中...</value>
+  </data>
+  <data name="Priority" xml:space="preserve">
+    <value>优先级</value>
+  </data>
+  <data name="Problems" xml:space="preserve">
+    <value>问题</value>
+  </data>
+  <data name="PublishedFileDetails" xml:space="preserve">
+    <value>发布文件详情</value>
+  </data>
+  <data name="Push" xml:space="preserve">
+    <value>推送</value>
+  </data>
+  <data name="PushErrorMessage" xml:space="preserve">
+    <value>推送失败。</value>
+  </data>
+  <data name="PushSuccessMessage" xml:space="preserve">
+    <value>推送成功。如果你的游戏正在运行，请进入游戏菜单内刷新。</value>
+  </data>
+  <data name="PushTip" xml:space="preserve">
+    <value>推送所有模组的启用状态给游戏。</value>
+  </data>
+  <data name="RandomlySelect" xml:space="preserve">
+    <value>随机选择</value>
+  </data>
+  <data name="RandomlySelectTip" xml:space="preserve">
+    <value>在启用策略为“随机唯一”的组中随机开启一个子项。</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="Rename" xml:space="preserve">
+    <value>重命名</value>
+  </data>
+  <data name="RenameTag" xml:space="preserve">
+    <value>重命名标签</value>
+  </data>
+  <data name="Resume" xml:space="preserve">
+    <value>恢复</value>
+  </data>
+  <data name="RetainFileMessage" xml:space="preserve">
+    <value>如果你要这么做的话，文件将会被保留。</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="Search" xml:space="preserve">
+    <value>搜索</value>
+  </data>
+  <data name="SearchingMessage" xml:space="preserve">
+    <value>搜索中...</value>
+  </data>
+  <data name="Select" xml:space="preserve">
+    <value>选择</value>
+  </data>
+  <data name="SetAutoUpdateStrategyToDefaultRecursively" xml:space="preserve">
+    <value>递归地设置自动更新策略为默认</value>
+  </data>
+  <data name="SetAutoUpdateStrategyToDisabledRecursively" xml:space="preserve">
+    <value>递归地设置自动更新策略为禁用</value>
+  </data>
+  <data name="SetAutoUpdateStrategyToEnabledRecursively" xml:space="preserve">
+    <value>递归地设置自动更新策略为启用</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="ShowInFileExplorer" xml:space="preserve">
+    <value>在文件资源管理器中显示</value>
+  </data>
+  <data name="Skip" xml:space="preserve">
+    <value>跳过</value>
+  </data>
+  <data name="SkipAll" xml:space="preserve">
+    <value>跳过所有</value>
+  </data>
+  <data name="SubscriptionsColon" xml:space="preserve">
+    <value>订阅量：</value>
+  </data>
+  <data name="Success" xml:space="preserve">
+    <value>成功</value>
+  </data>
+  <data name="TagEditor" xml:space="preserve">
+    <value>标签编辑器</value>
+  </data>
+  <data name="TagFilterMode" xml:space="preserve">
+    <value>标签筛选器模式</value>
+  </data>
+  <data name="TagManager" xml:space="preserve">
+    <value>标签管理器</value>
+  </data>
+  <data name="TagNameExistMessage" xml:space="preserve">
+    <value>该标签名称已存在。</value>
+  </data>
+  <data name="Tags" xml:space="preserve">
+    <value>标签</value>
+  </data>
+  <data name="TagsColon" xml:space="preserve">
+    <value>标签：</value>
+  </data>
+  <data name="TagsOf" xml:space="preserve">
+    <value>“{0}”的标签</value>
+  </data>
+  <data name="ThisListSortByPriorityMessage" xml:space="preserve">
+    <value>此列表按优先级排序</value>
+  </data>
+  <data name="TitleColon" xml:space="preserve">
+    <value>标题：</value>
+  </data>
+  <data name="Tools" xml:space="preserve">
+    <value>工具</value>
+  </data>
+  <data name="UnnamedGroup" xml:space="preserve">
+    <value>未命名组</value>
+  </data>
+  <data name="UnnamedWorkshopAddon" xml:space="preserve">
+    <value>未命名创意工坊模组</value>
+  </data>
+  <data name="Update" xml:space="preserve">
+    <value>更新</value>
+  </data>
+  <data name="UseRegex" xml:space="preserve">
+    <value>使用正则表达式</value>
+  </data>
+  <data name="VersionColon" xml:space="preserve">
+    <value>版本：</value>
+  </data>
+  <data name="ViewsColon" xml:space="preserve">
+    <value>浏览量：</value>
+  </data>
+  <data name="VpkInfo" xml:space="preserve">
+    <value>VPK信息</value>
+  </data>
+  <data name="Warning" xml:space="preserve">
+    <value>警告</value>
+  </data>
+  <data name="Workshop" xml:space="preserve">
+    <value>创意工坊</value>
+  </data>
+  <data name="WorkshopAddon" xml:space="preserve">
+    <value>创意工坊模组</value>
+  </data>
+  <data name="WorkshopCollection" xml:space="preserve">
+    <value>创意工坊合集</value>
+  </data>
+  <data name="WorkshopItemAutoUpdate" xml:space="preserve">
+    <value>创意工坊项目自动更新</value>
+  </data>
+  <data name="WorkshopVpkFileNotLoadProblemExplain" xml:space="preserve">
+    <value>创意工坊VPK文件没有装载。此问题将在下载成功完成时消失。如果下载没有开始，你可以点击检查按钮来尝试开始下载。</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>是</value>
+  </data>
+  <data name="GlobalPriority" xml:space="preserve">
+    <value>全局优先级</value>
+  </data>
+  <data name="Enum_AddonNodeSortMethod_PriorityInHierarchy" xml:space="preserve">
+    <value>按全局优先级排序</value>
+  </data>
+  <data name="Enum_AddonNodeSortMethod_ProblemCount" xml:space="preserve">
+    <value>按问题数量排序</value>
+  </data>
+  <data name="Enum_AddonNodeSortMethod_Priority" xml:space="preserve">
+    <value>按优先级排序</value>
+  </data>
+  <data name="Remove" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="RemoveAll" xml:space="preserve">
+    <value>移除全部</value>
+  </data>
+  <data name="ConfirmIgnoreAllConflictingFiles" xml:space="preserve">
+    <value>你确定要忽略全部的冲突文件吗？</value>
+  </data>
+  <data name="ConfirmRemoveAllConflictIgnoringFiles" xml:space="preserve">
+    <value>你确定要移除全部的冲突忽略文件吗？</value>
+  </data>
+  <data name="VpkAddonConflictProblemExplain" xml:space="preserve">
+    <value>发现VPK文件冲突。</value>
+  </data>
+  <data name="MissingAddon" xml:space="preserve">
+    <value>丢失的模组</value>
+  </data>
+  <data name="CancelRefreshing" xml:space="preserve">
+    <value>取消刷新</value>
+  </data>
+  <data name="VpkConflictList" xml:space="preserve">
+    <value>VPK冲突列表</value>
+  </data>
+  <data name="RefreshingHint" xml:space="preserve">
+    <value>刷新中...</value>
+  </data>
+  <data name="CrashReporterMessageHeader" xml:space="preserve">
+    <value>FireAxe因一个未处理的异常而崩溃，以下是该异常的详情：</value>
+  </data>
+  <data name="Find" xml:space="preserve">
+    <value>查找</value>
+  </data>
+  <data name="GamePathNotFoundMessage" xml:space="preserve">
+    <value>无法找到游戏路径。请手动设置。</value>
+  </data>
+  <data name="ConfirmFoundGamePathMessage" xml:space="preserve">
+    <value>已找到游戏路径“{0}”。你确定要使用这个路径吗？</value>
+  </data>
+  <data name="Confirm" xml:space="preserve">
+    <value>确认</value>
+  </data>
+  <data name="WorkshopVpkAddonDeleteRedundantVpkFilesReportConfirmMessage" xml:space="preserve">
+    <value>发现了总大小为{1}的{0}个多余的VPK文件。每个模组的目录只会保留一个最新的VPK文件。你确定要继续吗？</value>
+  </data>
+  <data name="DeleteRedundantVpkFiles" xml:space="preserve">
+    <value>删除多余的VPK文件</value>
+  </data>
+  <data name="HintSelectedItems" xml:space="preserve">
+    <value>(选中的项目)</value>
+  </data>
+  <data name="WorkshopVpkAddonDeleteRedundantVpkFilesReportEmptyMessage" xml:space="preserve">
+    <value>未发现多余的VPK文件。</value>
+  </data>
+  <data name="WorkshopVpkAddonDeleteRedundantVpkFilesReportSuccessMessage" xml:space="preserve">
+    <value>已删除总大小为{1}的{0}个多余的VPK文件。</value>
+  </data>
+  <data name="PathColon" xml:space="preserve">
+    <value>路径：</value>
+  </data>
+  <data name="ParentGroupColon" xml:space="preserve">
+    <value>上级组：</value>
+  </data>
+  <data name="WorkshopVpkFinder" xml:space="preserve">
+    <value>创意工坊VPK查找器</value>
+  </data>
+  <data name="OpenWebsite" xml:space="preserve">
+    <value>打开网站</value>
+  </data>
+  <data name="FindFromDirectory" xml:space="preserve">
+    <value>从目录中查找</value>
+  </data>
+  <data name="HintGettingTitle" xml:space="preserve">
+    <value>(正在获取标题...)</value>
+  </data>
+  <data name="HintFailedGetTitle" xml:space="preserve">
+    <value>(无法获取标题)</value>
+  </data>
+  <data name="SelectGamePath" xml:space="preserve">
+    <value>选择游戏路径</value>
+  </data>
+  <data name="ExportSelectedItemsAsAddonRootFile" xml:space="preserve">
+    <value>导出选中的项目为.addonroot文件</value>
+  </data>
+  <data name="SaveAddonRootFile" xml:space="preserve">
+    <value>保存.addonroot文件</value>
+  </data>
+  <data name="ImportAddonRootFile" xml:space="preserve">
+    <value>导入.addonroot文件</value>
+  </data>
+  <data name="ImportedGroup" xml:space="preserve">
+    <value>导入的组</value>
+  </data>
+  <data name="SaveAddonRootFileSuccess" xml:space="preserve">
+    <value>已成功保存.addonroot文件“{0}”。</value>
+  </data>
+  <data name="FileNameExists" xml:space="preserve">
+    <value>已存在相同名称的文件。</value>
+  </data>
+  <data name="Details" xml:space="preserve">
+    <value>详情</value>
+  </data>
+  <data name="DeletingAddons" xml:space="preserve">
+    <value>删除模组</value>
+  </data>
+  <data name="OperationsProgress_Deletion_Progress" xml:space="preserve">
+    <value>删除中... ({0} / {1})</value>
+  </data>
+  <data name="OperationsProgress_Deletion_ProgressWithFailure" xml:space="preserve">
+    <value>删除中... ({0} / {1}, {2}项失败)</value>
+  </data>
+  <data name="OperationsProgress_Deletion_Done" xml:space="preserve">
+    <value>已完成。{0}个项目已被删除。</value>
+  </data>
+  <data name="OperationsProgress_Deletion_DoneWithFailure" xml:space="preserve">
+    <value>已完成。{0}个项目已被删除，{1}个项目删除失败。</value>
+  </data>
+  <data name="OperationsProgress_Deletion_OperationSucceeded" xml:space="preserve">
+    <value>已删除“{0}”。</value>
+  </data>
+  <data name="OperationsProgress_Deletion_OperationFailed" xml:space="preserve">
+    <value>“{0}”删除失败：{1}</value>
+  </data>
+  <data name="OperationCanceled" xml:space="preserve">
+    <value>操作已被取消。</value>
+  </data>
+  <data name="FileCleaner" xml:space="preserve">
+    <value>文件清理器</value>
+  </data>
+  <data name="Retain" xml:space="preserve">
+    <value>保留</value>
+  </data>
+  <data name="Deleting" xml:space="preserve">
+    <value>删除中...</value>
+  </data>
+  <data name="DeletionFailed" xml:space="preserve">
+    <value>删除失败</value>
+  </data>
+  <data name="RetainAll" xml:space="preserve">
+    <value>保留全部</value>
+  </data>
+  <data name="TotalFileSizeColon" xml:space="preserve">
+    <value>总文件大小：</value>
+  </data>
+  <data name="GlobalSearch" xml:space="preserve">
+    <value>全局搜索</value>
+  </data>
+  <data name="SearchSources" xml:space="preserve">
+    <value>搜索源</value>
+  </data>
+  <data name="FindAllCleanable" xml:space="preserve">
+    <value>查找所有可清理项</value>
+  </data>
+  <data name="FindRedundantVpkFiles" xml:space="preserve">
+    <value>查找多余的VPK文件</value>
+  </data>
+  <data name="FindEmptyDirectories" xml:space="preserve">
+    <value>查找空目录</value>
+  </data>
+  <data name="FindDownloadTempFiles" xml:space="preserve">
+    <value>查找下载临时文件</value>
+  </data>
+  <data name="DeleteAll" xml:space="preserve">
+    <value>删除全部</value>
+  </data>
+  <data name="AddSearchSource" xml:space="preserve">
+    <value>添加搜索源</value>
+  </data>
+  <data name="ItemsFoundWithCount" xml:space="preserve">
+    <value>已找到{0}项。</value>
+  </data>
+  <data name="ConfirmDeleteAll" xml:space="preserve">
+    <value>你确定要删除全部项吗？</value>
+  </data>
+  <data name="AddonNameAutoSetter" xml:space="preserve">
+    <value>模组名称自动设置器</value>
+  </data>
+  <data name="Apply" xml:space="preserve">
+    <value>应用</value>
+  </data>
+  <data name="Retry" xml:space="preserve">
+    <value>重试</value>
+  </data>
+  <data name="GettingName" xml:space="preserve">
+    <value>获取名称中...</value>
+  </data>
+  <data name="FailedToGetName" xml:space="preserve">
+    <value>获取名称失败。</value>
+  </data>
+  <data name="Start" xml:space="preserve">
+    <value>开始</value>
+  </data>
+  <data name="ApplyAll" xml:space="preserve">
+    <value>应用全部</value>
+  </data>
+  <data name="RetryAll" xml:space="preserve">
+    <value>重试全部</value>
+  </data>
+  <data name="ForceUseWorkshopTitle" xml:space="preserve">
+    <value>强制使用创意工坊标题</value>
+  </data>
+  <data name="Targets" xml:space="preserve">
+    <value>目标</value>
+  </data>
+  <data name="NoItemsToStart" xml:space="preserve">
+    <value>没有可开始的项。</value>
+  </data>
+  <data name="FailedToApplyNameWithCount" xml:space="preserve">
+    <value>{0}个项目应用名称失败。</value>
+  </data>
+  <data name="AddTargets" xml:space="preserve">
+    <value>添加目标</value>
+  </data>
+  <data name="AlternativeCustomizeAddonPreviewImageNote" xml:space="preserve">
+    <value>注意：你也可以通过在模组的文件旁放置一个相同名称的图像文件来自定义预览图像（此方式优先级更高）。</value>
+  </data>
+  <data name="AddonDependenciesProblemExplain" xml:space="preserve">
+    <value>存在依赖项未启用。</value>
+  </data>
+  <data name="Dependencies" xml:space="preserve">
+    <value>依赖项</value>
+  </data>
+  <data name="AddDependencies" xml:space="preserve">
+    <value>添加依赖项</value>
+  </data>
+  <data name="EnableAll" xml:space="preserve">
+    <value>启用全部</value>
+  </data>
+  <data name="ReferenceAddon" xml:space="preserve">
+    <value>引用模组</value>
+  </data>
+  <data name="Reference" xml:space="preserve">
+    <value>引用</value>
+  </data>
+  <data name="SourceColon" xml:space="preserve">
+    <value>源：</value>
+  </data>
+  <data name="Set" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="SyncTags" xml:space="preserve">
+    <value>同步标签</value>
+  </data>
+  <data name="SyncDependencies" xml:space="preserve">
+    <value>同步依赖项</value>
+  </data>
+  <data name="UnnamedReferenceAddon" xml:space="preserve">
+    <value>未命名引用模组</value>
+  </data>
+  <data name="SetSource" xml:space="preserve">
+    <value>设置源</value>
+  </data>
+  <data name="AddonCircularRefProblemExplain" xml:space="preserve">
+    <value>出现循环引用。</value>
+  </data>
+  <data name="ItemsRandomSelectedWithCount" xml:space="preserve">
+    <value>已随机选择{0}项。</value>
+  </data>
+  <data name="NoItemRandomSelected" xml:space="preserve">
+    <value>没有可随机选择的项。</value>
+  </data>
+  <data name="WebProxyAddress" xml:space="preserve">
+    <value>Web代理地址</value>
+  </data>
+  <data name="InvalidFilePath" xml:space="preserve">
+    <value>无效的文件路径</value>
+  </data>
+  <data name="ValueMustBeInteger" xml:space="preserve">
+    <value>值必须是整数。</value>
+  </data>
+  <data name="InvalidUri" xml:space="preserve">
+    <value>无效的URI</value>
+  </data>
+  <data name="FileMustBeInCurrentDirectory" xml:space="preserve">
+    <value>文件必须要在当前目录中。</value>
+  </data>
+  <data name="InvalidGuid" xml:space="preserve">
+    <value>无效的GUID</value>
+  </data>
+  <data name="ChangeIdNote" xml:space="preserve">
+    <value>注意：修改ID可以解决引用问题但也可能导致引用丢失问题。请确保理解其机制后再修改。</value>
+  </data>
+  <data name="AdvancedPanel" xml:space="preserve">
+    <value>高级面板</value>
+  </data>
+  <data name="AddonFileNotExist" xml:space="preserve">
+    <value>模组文件不存在。</value>
+  </data>
+  <data name="AddonDownloadFailedProblemExplain" xml:space="preserve">
+    <value>下载失败 ({0})。文件路径：{1}。URL：{2}。</value>
+  </data>
+  <data name="DownloadFailed" xml:space="preserve">
+    <value>下载失败</value>
+  </data>
+  <data name="ProblemList" xml:space="preserve">
+    <value>问题列表</value>
+  </data>
+  <data name="ProblematicAddons" xml:space="preserve">
+    <value>问题模组</value>
+  </data>
+  <data name="ProblemsFoundWithCount" xml:space="preserve">
+    <value>发现{0}个问题。</value>
+  </data>
+  <data name="NoProblemFound" xml:space="preserve">
+    <value>没有发现问题。</value>
+  </data>
+  <data name="AppAlreadyRunningMessage" xml:space="preserve">
+    <value>FireAxe正在运行中。在同一时间只允许运行一个实例。</value>
+  </data>
+  <data name="FileBackup" xml:space="preserve">
+    <value>文件备份</value>
+  </data>
+  <data name="AddonRootBackupDirectoryLocationNote" xml:space="preserve">
+    <value>备份文件位于“.addonrootdir/backups”。</value>
+  </data>
+  <data name="MaxRetainedBackupFileCount" xml:space="preserve">
+    <value>备份文件最多保留个数</value>
+  </data>
+  <data name="FileBackupIntervalMinutes" xml:space="preserve">
+    <value>文件备份间隔（分钟）</value>
+  </data>
+  <data name="ValueMustBeWithinValidRange" xml:space="preserve">
+    <value>值必须在有效范围内。</value>
+  </data>
+  <data name="Creating" xml:space="preserve">
+    <value>创建中...</value>
+  </data>
+  <data name="AppSettingsFileLocationNote" xml:space="preserve">
+    <value>设置文件位于：
+“{0}”</value>
+  </data>
+  <data name="IgnoreHalfLife2FilesForVpkAddonConflicts" xml:space="preserve">
+    <value>VPK冲突忽略半条命2文件</value>
+  </data>
+  <data name="CustomizeVpkAddonConflictIgnoringFilesNote" xml:space="preserve">
+    <value>你可以在此目录中自定义VPK冲突忽略文件：
+{0}</value>
+  </data>
+  <data name="LastPushedAt" xml:space="preserve">
+    <value>最近推送于 {0}</value>
+  </data>
+  <data name="OpenDirectoryNote" xml:space="preserve">
+    <value>打开存放模组的目录。不要打开“left4dead2/addons”或“left4dead2/addons/workshop”！</value>
+  </data>
+  <data name="OpeningDirectory" xml:space="preserve">
+    <value>打开目录中...</value>
+  </data>
+  <data name="AddonFileNotExistProblemExplain_ShouldBeDirectory" xml:space="preserve">
+    <value>路径“{0}”应该是文件夹而不是文件。</value>
+  </data>
+  <data name="AddonFileNotExistProblemExplain_ShouldBeFile" xml:space="preserve">
+    <value>路径“{0}”应该是文件而不是文件夹。</value>
+  </data>
+  <data name="AddonRootDeserializationExceptionMessage" xml:space="preserve">
+    <value>无法加载.addonroot文件。该文件可能损坏。你可以使用位于“.addonrootdir/backups”的备份文件来替换当前的文件。</value>
+  </data>
+  <data name="ImportCompletedSuccessfullyWithCount" xml:space="preserve">
+    <value>导入完成。已成功导入{0}项。</value>
+  </data>
+  <data name="ImportCompletedUnsuccessfullyWithCount" xml:space="preserve">
+    <value>导入完成。{0}项导入成功，{1}项导入失败。</value>
+  </data>
+  <data name="RenamedItemTo" xml:space="preserve">
+    <value>已重命名“{0}”为“{1}”。</value>
+  </data>
+  <data name="ItemImportedSuccessfully" xml:space="preserve">
+    <value>”{0}“导入成功。</value>
+  </data>
+  <data name="ItemFailedToImportWithError" xml:space="preserve">
+    <value>”{0}“导入失败：{1}</value>
+  </data>
+  <data name="NoItemsToImport" xml:space="preserve">
+    <value>没有可导入的项。</value>
+  </data>
+  <data name="FileNameFixer" xml:space="preserve">
+    <value>文件名修复器</value>
+  </data>
+  <data name="FileNameFixerTip" xml:space="preserve">
+    <value>此工具也许可以帮助你解决模组文件不存在的问题。</value>
+  </data>
+  <data name="Fix" xml:space="preserve">
+    <value>修复</value>
+  </data>
+  <data name="Fixed" xml:space="preserve">
+    <value>已修复</value>
+  </data>
+  <data name="FailedToFix" xml:space="preserve">
+    <value>修复失败</value>
+  </data>
+  <data name="NoItemsToFix" xml:space="preserve">
+    <value>没有可修复的项。</value>
+  </data>
+  <data name="Checking" xml:space="preserve">
+    <value>检查中...</value>
+  </data>
+  <data name="InvalidPublishedFileIdProblemExplain" xml:space="preserve">
+    <value>无效的发布文件ID：{0}</value>
+  </data>
+  <data name="AddonInvalidRefSourceProblemExplain" xml:space="preserve">
+    <value>无效的引用源。</value>
+  </data>
+  <data name="CreateRefAddonsBasedOnSelectedAddons" xml:space="preserve">
+    <value>根据选中的模组来创建引用模组</value>
+  </data>
+  <data name="UserInterface" xml:space="preserve">
+    <value>用户界面</value>
+  </data>
+  <data name="GameInformation" xml:space="preserve">
+    <value>游戏信息</value>
+  </data>
+  <data name="VpkAddonConflict" xml:space="preserve">
+    <value>VPK模组冲突</value>
+  </data>
+  <data name="WebProxy" xml:space="preserve">
+    <value>Web代理</value>
+  </data>
+  <data name="WebProxyCredentialUserName" xml:space="preserve">
+    <value>Web代理认证用户名</value>
+  </data>
+  <data name="WebProxyCredentialPassword" xml:space="preserve">
+    <value>Web代理认证密码</value>
+  </data>
+  <data name="Hidden" xml:space="preserve">
+    <value>[已隐藏]</value>
+  </data>
+  <data name="InvalidVpkFileProblemExplain" xml:space="preserve">
+    <value>无效的VPK文件。</value>
+  </data>
+  <data name="ProcessFileCustomization" xml:space="preserve">
+    <value>进程文件自定义</value>
+  </data>
+  <data name="ProcessFileName" xml:space="preserve">
+    <value>进程文件名</value>
+  </data>
+  <data name="ProcessArguments" xml:space="preserve">
+    <value>进程参数</value>
+  </data>
+  <data name="ShowFile" xml:space="preserve">
+    <value>显示文件</value>
+  </data>
+  <data name="OpenDirectoryCustomProcessArgumentsWatermark" xml:space="preserve">
+    <value>使用“{0}”代表目录路径</value>
+  </data>
+  <data name="ShowFileCustomProcessArgumentsWatermark" xml:space="preserve">
+    <value>使用“{0}”代表文件路径</value>
+  </data>
+  <data name="DeleteAddonsWithMissingFiles" xml:space="preserve">
+    <value>删除文件不存在的模组</value>
+  </data>
+  <data name="ConfirmDeleteAddonsWithMissingFilesWithCount" xml:space="preserve">
+    <value>已发现{0}个文件不存在的模组。你确定要删除这些模组吗？</value>
+  </data>
+  <data name="AddonsWithMissingFilesNotFound" xml:space="preserve">
+    <value>未发现文件不存在的模组。</value>
+  </data>
+</root>

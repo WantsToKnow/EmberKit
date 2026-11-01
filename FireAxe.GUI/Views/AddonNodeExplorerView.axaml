@@ -1,0 +1,532 @@
+<!-- Modified for EmberKit, based on ktxiaok/FireAxe 0.7.3; see MODIFICATIONS.md. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:v="using:FireAxe.Views"
+             xmlns:vm="using:FireAxe.ViewModels"
+             xmlns:r="using:FireAxe.Resources"
+             xmlns:me="using:FireAxe.MarkupExtensions"
+             xmlns:conv="using:FireAxe.ValueConverters"
+             xmlns:local="using:FireAxe"
+             mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="900"
+             x:Class="FireAxe.Views.AddonNodeExplorerView"
+             x:DataType="vm:AddonNodeExplorerViewModel">
+  <Design.DataContext>
+    <vm:AddonNodeExplorerViewModelDesign/>
+  </Design.DataContext>
+  
+  <Grid
+    Name="rootGrid"
+    RowDefinitions="Auto, Auto, Auto, *"
+    ColumnDefinitions="*, Auto, 320">
+    <Border Grid.Row="0" Grid.ColumnSpan="3" Background="#1A2231" CornerRadius="8" Padding="16,12" Margin="0,0,0,8">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="10,0,0,0">
+          <Button Content="工坊下载" Command="{Binding OpenWorkshopDownloadCommand}"/>
+          <Button Content="导入 TXT" Command="{Binding ImportWorkshopTextCommand}"/>
+          <Button Content="导出 TXT" Command="{Binding ExportWorkshopTextCommand}"/>
+          <Button Content="本地存储" Command="{Binding OpenModOrganizerCommand}"/>
+            <Button Content="主菜单应用" Command="{Binding OpenMainMenuReloadCommand}"/>
+          <Button Command="{Binding ModCatalog.RecheckCommand}" Content="重新识别" ToolTip.Tip="扫描 modebackup，恢复丢失链接及备份中的 Mod，清理确认缺失的本地记录，再更新分类和冲突检查。"/>
+        </StackPanel>
+        <StackPanel Spacing="4">
+          <TextBlock Text="MOD 工作台" FontSize="23" FontWeight="SemiBold" Foreground="#E4EDFF"/>
+          <TextBlock Text="{Binding ModCatalog.Summary}" Foreground="#A8BBD8" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding ModCatalog.Storage.Status}" Foreground="#FFCE8E" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding ModCatalog.RecheckStatus}" Foreground="#A8BBD8" TextWrapping="Wrap"/>
+          <TextBlock Text="多个模组同时影响同一对象，可能互相覆盖。点击左侧提醒查看。"
+                     IsVisible="{Binding ModCatalog.HasEnabledOverlap}" Foreground="#FFBE72" TextWrapping="Wrap"/>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+    <Grid
+      RowDefinitions="Auto"
+      ColumnDefinitions="Auto, Auto, *"
+      Grid.Row="1"
+      Grid.Column="0" 
+      Margin="5">
+      <Grid.Styles>
+        <Style Selector="Button">
+          <Setter Property="Background" Value="Transparent"/>
+          <Style Selector="^:disabled ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+          </Style>
+        </Style>
+
+        <Style Selector="Button.Regular > PathIcon">
+          <Setter Property="Width" Value="25"/>
+          <Setter Property="Height" Value="25"/>
+        </Style>
+      </Grid.Styles>
+       
+      <Button
+        Command="{Binding GotoParentCommand}"
+        Classes="Regular"
+        Grid.Row="0" Grid.Column="0">
+        <PathIcon Data="{StaticResource icon_arrow_up}"/>
+      </Button>
+
+      <Button
+        Command="{Binding GotoRootCommand}"
+        Classes="Regular"
+        Grid.Row="0" Grid.Column="1">
+        <PathIcon Data="{StaticResource icon_home}"/>
+      </Button>
+
+      <ScrollViewer 
+        Grid.Row="0" Grid.Column="2"
+        HorizontalScrollBarVisibility="Auto">
+        <v:AddonNodeNavBarView/>
+      </ScrollViewer>
+    </Grid>
+
+    <!--search, sort, view kind-->
+    <DockPanel
+      Grid.Row="2" Grid.Column="0">
+      <DockPanel.Styles>
+        <Style Selector="PathIcon">
+          <Setter Property="Width" Value="20"/>
+          <Setter Property="Height" Value="20"/>
+        </Style>
+      </DockPanel.Styles>
+      
+      <!--sort and view kind-->
+      <StackPanel
+        DockPanel.Dock="Right"
+        Orientation="Horizontal"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center">
+        <Panel>
+          <Button
+            Command="{Binding ToggleOrderDirection}"
+            Content="{x:Static r:Texts.Ascending}"
+            IsVisible="{Binding IsAscendingOrder, FallbackValue=false}"/>
+          <Button
+            Command="{Binding ToggleOrderDirection}"
+            Content="{x:Static r:Texts.Descending}"
+            IsVisible="{Binding !IsAscendingOrder, FallbackValue=false}"/>
+        </Panel>
+        <ComboBox
+          Classes="EnumComboBox"
+          ItemsSource="{Binding Source={me:EnumValues {x:Type vm:AddonNodeSortMethod}}}"
+          SelectedItem="{Binding SortMethod}"
+          Margin="5"/>
+
+        <ComboBox
+          Classes="EnumComboBox"
+          ItemsSource="{Binding Source={me:EnumValues {x:Type vm:AddonNodeListItemViewKind}}}"
+          SelectedItem="{Binding ListItemViewKind}"
+          Margin="5"/>
+      </StackPanel>
+      <!--search-->
+      <StackPanel
+        DockPanel.Dock="Left"
+        Orientation="Horizontal"
+        HorizontalAlignment="Left"
+        VerticalAlignment="Center">
+        <TextBox
+          Name="searchTextBox"
+          Text="{Binding SearchText}"
+          Watermark="搜索模组名称"
+          VerticalAlignment="Center"
+          Margin="5"
+          MinWidth="150"
+          MaxWidth="300"/>
+        <PathIcon
+          Data="{StaticResource icon_search}"
+          IsVisible="{Binding !IsSearchTextClearable}"
+          VerticalAlignment="Center"
+          Margin="5"/>
+        <Button
+          Command="{Binding ClearSearchText}"
+          IsVisible="{Binding IsSearchTextClearable, FallbackValue=false}"
+          Background="Transparent"
+          VerticalAlignment="Center"
+          Margin="5">
+          <PathIcon Data="{StaticResource icon_dismiss}"/>
+        </Button>
+        <Button
+          Name="searchOptionsButton"
+          Background="Transparent"
+          VerticalAlignment="Center"
+          Margin="5">
+          <PathIcon Data="{StaticResource icon_more}"/>
+        </Button>
+        <TextBlock
+          Text="{x:Static r:Texts.FilterEnabledMessage}"
+          IsVisible="{Binding IsFilterEnabled, FallbackValue=False}"
+          VerticalAlignment="Center"
+          Margin="5"/>
+        <TextBlock
+          IsVisible="{Binding IsSearching, FallbackValue=false}"
+          Text="{x:Static r:Texts.SearchingMessage}"
+          VerticalAlignment="Center"
+          Margin="5"/>
+      </StackPanel>
+    </DockPanel>
+
+    <!--container view-->
+    <Border
+      Grid.Row="3"
+      Grid.Column="0"
+      BorderThickness="1"
+      BorderBrush="#343C4C"
+      CornerRadius="8" Padding="6">
+      <DockPanel>
+        <Border DockPanel.Dock="Left" Width="224" Margin="0,0,8,0" Padding="8" Background="#1A1F29" CornerRadius="7">
+          <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+            <StackPanel Margin="5,3,5,10" Spacing="5">
+              <TextBlock Text="按替换对象分类" FontSize="16" FontWeight="SemiBold"/>
+              <TextBlock Text="读取 VPK 内容 · 可同时属于多类" FontSize="11" Foreground="#98A8BE"/>
+            </StackPanel>
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" Margin="3,0,3,8">
+              <Button Content="全部展开" Command="{Binding ModCatalog.ExpandAll}" FontSize="11" Padding="9,5"/>
+              <Button Content="全部收起" Command="{Binding ModCatalog.CollapseAll}" FontSize="11" Padding="9,5"/>
+            </StackPanel>
+            <ListBox Grid.Row="2" ItemsSource="{Binding ModCatalog.Categories}" SelectedItem="{Binding ModCatalog.SelectedCategory}"
+                     Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:ModCategoryFilter">
+                  <Grid ColumnDefinitions="20,*,28" Margin="0,3" ToolTip.Tip="{Binding Description}">
+                    <Button IsVisible="{Binding IsGroup}" Content="{Binding ExpandGlyph}" Command="{Binding Toggle}"
+                            Background="Transparent" Padding="0" FontSize="14" Width="18" Height="20" ToolTip.Tip="展开 / 收起这组分类"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="2" Text="{Binding Count}" FontSize="12" Foreground="#95BDF9" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <CheckBox Grid.Row="3" IsChecked="{Binding ModCatalog.OnlyOverlaps}" Content="只看同对象的多个 Mod" FontSize="12" Margin="3,10,0,5"/>
+            <Expander Grid.Row="4" Header="同对象替换提醒" IsExpanded="True" IsVisible="{Binding ModCatalog.HasOverlaps}" HorizontalAlignment="Stretch">
+              <StackPanel Spacing="6">
+                <TextBlock Text="已安装数量包含禁用项；不等同于文件冲突。" FontSize="11" TextWrapping="Wrap" Foreground="#98A8BE"/>
+                <ScrollViewer MaxHeight="190">
+                  <ItemsControl ItemsSource="{Binding ModCatalog.OverlapGroups}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ModOverlapGroup">
+                        <Button Command="{Binding Show}" ToolTip.Tip="{Binding Names}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Margin="0,0,0,5" Padding="9,7">
+                          <StackPanel Spacing="3">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding Status}" FontSize="11" Foreground="#A8BBD8"/>
+                            <TextBlock Text="同时启用 · 请检查覆盖" IsVisible="{Binding HasEnabledOverlap}" FontSize="11" Foreground="#FFBE72"/>
+                          </StackPanel>
+                        </Button>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </StackPanel>
+            </Expander>
+          </Grid>
+        </Border>
+        <!--moving nodes-->
+        <DockPanel
+          DockPanel.Dock="Top"
+          IsVisible="{Binding MovingNodeViewModels.Count, Converter={x:Static conv:CollectionConverters.IsNotEmpty}}">
+          <TextBlock
+            DockPanel.Dock="Left"
+            Text="{x:Static r:Texts.MovingColon}"
+            Margin="10"
+            VerticalAlignment="Center"/>
+          <ScrollViewer
+            MaxHeight="150">
+            <ItemsControl
+              ItemsSource="{Binding MovingNodeViewModels}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border
+                    BorderBrush="{DynamicResource brush_foreground}"
+                    BorderThickness="1"
+                    CornerRadius="5"
+                    Margin="5"
+                    Padding="5">
+                    <StackPanel
+                      Orientation="Horizontal">
+                      <StackPanel.Styles>
+                        <Style Selector="v|AddonNodeEnableButton">
+                          <Setter Property="IsVisible" Value="False"/>
+                        </Style>
+                      </StackPanel.Styles>
+
+                      <v:AddonRefView/>
+                      <Button
+                        Command="{Binding MoveHereCommand}"
+                        Background="Transparent"
+                        Margin="2.5, 0, 0, 0">
+                        <PathIcon Data="{StaticResource icon_checkmark}"/>
+                      </Button>
+                      <Button
+                        Command="{Binding Remove}"
+                        Background="Transparent">
+                        <PathIcon Data="{StaticResource icon_dismiss}"/>
+                      </Button>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel/>
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+            </ItemsControl>
+          </ScrollViewer>
+        </DockPanel>
+        <!--search options-->
+        <Panel
+          DockPanel.Dock="Top"
+          Name="searchOptionsControl"
+          IsVisible="False">
+          <ScrollViewer
+            MaxHeight="190"
+            HorizontalScrollBarVisibility="Disabled">
+            <StackPanel
+              Orientation="Vertical"
+              Margin="5">
+              <StackPanel.Styles>
+                <Style Selector="TextBlock">
+                  <Setter Property="VerticalAlignment" Value="Center"/>
+                  <Setter Property="Margin" Value="5"/>
+                  <Setter Property="TextWrapping" Value="Wrap"/>
+                </Style>
+                <Style Selector="CheckBox">
+                  <Setter Property="HorizontalAlignment" Value="Right"/>
+                  <Setter Property="Margin" Value="5"/>
+                </Style>
+                <Style Selector="ComboBox">
+                  <Setter Property="HorizontalAlignment" Value="Right"/>
+                  <Setter Property="VerticalAlignment" Value="Center"/>
+                  <Setter Property="Margin" Value="5"/>
+                </Style>
+              </StackPanel.Styles>
+              <Grid
+                RowDefinitions="Auto, Auto, Auto, Auto, Auto"
+                ColumnDefinitions="Auto, *">
+                <TextBlock
+                  Grid.Row="0" Grid.Column="0"
+                  Text="{x:Static r:Texts.IgnoreCase}"/>
+                <CheckBox
+                  Grid.Row="0" Grid.Column="1"
+                  IsChecked="{Binding SearchIgnoreCase}"/>
+
+                <TextBlock
+                  Grid.Row="1" Grid.Column="0"
+                  Text="{x:Static r:Texts.Flatten}"/>
+                <CheckBox
+                  Grid.Row="1" Grid.Column="1"
+                  IsChecked="{Binding IsSearchFlatten}"/>
+
+                <TextBlock
+                  Grid.Row="2" Grid.Column="0"
+                  Text="{x:Static r:Texts.UseRegex}"/>
+                <CheckBox
+                  Grid.Row="2" Grid.Column="1"
+                  IsChecked="{Binding IsSearchRegex}"/>
+
+                <TextBlock
+                  Grid.Row="3" Grid.Column="0"
+                  Text="{x:Static r:Texts.Filter}"/>
+                <CheckBox
+                  Grid.Row="3" Grid.Column="1"
+                  IsChecked="{Binding IsFilterEnabled}"/>
+
+                <TextBlock
+                  Grid.Row="4" Grid.Column="0"
+                  Text="{x:Static r:Texts.TagFilterMode}"/>
+                <ComboBox
+                  Grid.Row="4" Grid.Column="1"
+                  ItemsSource="{Binding Source={me:EnumValues {x:Type local:AddonTagFilterMode}}}"
+                  Classes="EnumComboBox"
+                  SelectedItem="{Binding TagFilterMode}"/>
+              </Grid>
+              <StackPanel
+                Orientation="Vertical"
+                IsVisible="{Binding IsFilterEnabled}">
+                <TextBlock
+                  Text="{x:Static r:Texts.Tags}"/>
+                <v:AddonTagCheckBoxList/>
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+        </Panel>
+        <!--current nodes-->
+        <ScrollViewer>
+          <Panel Name="currentNodesContainerControl">
+            <Panel.Styles>
+              <Style Selector="ListBoxItem">
+                <Style Selector="^:selected">
+                  <Style Selector="^ /template/ ContentPresenter">
+                    <Setter Property="Background" Value="{DynamicResource brush_background_addon_list_item_selected}"/>
+                  </Style>
+                  <Style Selector="^:pointerover /template/ ContentPresenter">
+                    <Setter Property="Background" Value="{DynamicResource brush_background_addon_list_item_selected_pointerover}"/>
+                  </Style>
+                  <Style Selector="^ Border">
+                    <Setter Property="BorderBrush" Value="{DynamicResource brush_border_addon_list_item_selected}"/>
+                  </Style>
+                </Style>
+                <Setter Property="Padding" Value="3"/>
+              </Style>
+
+              <Style Selector="Border.NodeBorder">
+                <Setter Property="Padding" Value="8"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="CornerRadius" Value="7"/>
+                <Setter Property="Background" Value="#1D222C"/>
+              </Style>
+            </Panel.Styles>
+            <!-- Both layouts share one selection model. -->
+            <ListBox
+              ItemsSource="{Binding CurrentNodes}"
+              SelectedItems="{Binding SelectedNodes}"
+              Classes.Tile="{Binding IsTileView}"
+              Classes.Grid="{Binding IsGridView}"
+              SelectionMode="{Binding $parent[v:AddonNodeExplorerView].ExpectedSelectionMode}">
+              <ListBox.Styles>
+                <Style Selector="ListBox.Tile">
+                  <Setter Property="ItemTemplate">
+                    <DataTemplate>
+                      <Border Classes="NodeBorder" DataContext="{Binding, Converter={x:Static conv:AddonNodeConverters.ToListItemViewModel}}">
+                        <v:AddonNodeTileView/>
+                      </Border>
+                    </DataTemplate>
+                  </Setter>
+                  <Setter Property="ItemsPanel">
+                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                  </Setter>
+                </Style>
+                <Style Selector="ListBox.Grid">
+                  <Setter Property="ItemTemplate">
+                    <DataTemplate>
+                      <Border Classes="NodeBorder" DataContext="{Binding, Converter={x:Static conv:AddonNodeConverters.ToListItemViewModel}}">
+                        <v:AddonNodeGridRowView/>
+                      </Border>
+                    </DataTemplate>
+                  </Setter>
+                  <Setter Property="ItemsPanel">
+                    <ItemsPanelTemplate><StackPanel Orientation="Vertical"/></ItemsPanelTemplate>
+                  </Setter>
+                </Style>
+              </ListBox.Styles>
+            </ListBox>
+
+            <!--empty hint-->
+            <TextBlock
+              IsVisible="{Binding CurrentNodes.Count, Converter={x:Static conv:CollectionConverters.IsEmpty}, FallbackValue=False}"
+              Text="{x:Static r:Texts.Empty}"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Top"
+              Margin="20"/>
+          </Panel>
+        </ScrollViewer>
+      </DockPanel>
+
+      <!--context menu-->
+      <Border.ContextMenu>
+        <ContextMenu>
+          <MenuItem Header="{x:Static r:Texts.Refresh}" Command="{Binding Refresh}"/>
+          <MenuItem Header="打开文件位置" Command="{Binding OpenFileLocationCommand}"/>
+
+          <Separator/>
+
+          <MenuItem Header="{x:Static r:Texts.New}">
+            <MenuItem Header="{x:Static r:Texts.Group}" Command="{Binding NewGroupCommand}"/>
+            <MenuItem Header="{x:Static r:Texts.ReferenceAddon}" Command="{Binding NewRefAddonCommand}"/>
+            <MenuItem Header="{x:Static r:Texts.WorkshopAddon}" Command="{Binding NewWorkshopAddonCommand}"/>
+            <MenuItem Header="{x:Static r:Texts.WorkshopCollection}" Command="{Binding NewWorkshopCollectionCommand}"/>
+          </MenuItem>
+          <MenuItem Header="{x:Static r:Texts.CreateRefAddonsBasedOnSelectedAddons}" Command="{Binding CreateRefAddonsBasedOnSelectedCommand}"/>
+
+          <Separator/>
+
+          <MenuItem Header="{x:Static r:Texts.Enable}" Command="{Binding EnableCommand}"/>
+          <MenuItem Header="{x:Static r:Texts.Disable}" Command="{Binding DisableCommand}"/>
+          <MenuItem Header="{x:Static r:Texts.EnableRecursively}" Command="{Binding EnableRecursivelyCommand}"/>
+          <MenuItem Header="{x:Static r:Texts.DisableRecursively}" Command="{Binding DisableRecursivelyCommand}"/>
+
+          <Separator/>
+
+          <MenuItem Header="{x:Static r:Texts.Move}" Command="{Binding MoveCommand}"/>
+          <MenuItem Header="{x:Static r:Texts.MoveHere}" Command="{Binding MoveHereCommand}"/>
+          <MenuItem Header="{x:Static r:Texts.CancelMove}" Command="{Binding CancelMoveCommand}"/>
+
+          <Separator/>
+
+          <MenuItem Header="{x:Static r:Texts.Delete}" Command="{Binding DeleteCommand}" CommandParameter="{x:False}"/>
+          <MenuItem Header="{x:Static r:Texts.DeleteAndRetainFile}" Command="{Binding DeleteCommand}" CommandParameter="{x:True}"/>
+          
+          <Separator/>
+
+          <MenuItem Header="{x:Static r:Texts.More}">
+            <MenuItem Header="{x:Static r:Texts.OpenWorkshopPage}" Command="{Binding OpenWorkshopPageCommand}"/>
+          </MenuItem>
+        </ContextMenu>
+      </Border.ContextMenu>
+    </Border>
+
+    <GridSplitter
+      Grid.Row="1" Grid.Column="1" Grid.RowSpan="3"
+      ResizeDirection="Columns"
+      IsVisible="{Binding $parent[v:AddonNodeExplorerView].IsAddonNodeViewEnabled}"
+      Width="4"/>
+    
+    <!--addon node view parent-->
+    <Border
+      Grid.Row="1"
+      Grid.Column="2"
+      Grid.RowSpan="3"
+      IsVisible="{Binding $parent[v:AddonNodeExplorerView].IsAddonNodeViewEnabled}"
+      BorderThickness="1"
+      BorderBrush="#343C4C"
+      CornerRadius="8"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch">
+      <ScrollViewer>
+        <Panel>
+          <StackPanel IsVisible="{Binding !HasSelection}" Margin="22,30" Spacing="12">
+            <TextBlock Text="模组详情" FontSize="20" FontWeight="SemiBold"/>
+            <TextBlock Text="选择一个模组，查看作者、替换对象与识别依据。" TextWrapping="Wrap" Foreground="#98A8BE"/>
+            <TextBlock Text="左侧按游戏中的原始位置分类。比如 M4 外观替换 M16，就会归到「M16 / M4」。" TextWrapping="Wrap" Foreground="#98A8BE"/>
+            <TextBlock Text="同对象提醒用于发现重复替换；原有「VPK 冲突列表」继续显示具体冲突文件。" TextWrapping="Wrap" Foreground="#98A8BE"/>
+          </StackPanel>
+          <StackPanel
+            Orientation="Vertical"
+            Margin="5, 100, 5, 5"
+            IsVisible="{Binding IsMultipleSelection, FallbackValue=False}">
+            <TextBlock
+              Text="{Binding SelectedNodes.Count, StringFormat={x:Static r:Texts.MultipleItemsSelected}}"
+              Margin="5"
+              TextAlignment="Center"/>
+            <TextBlock
+              Text="{Binding SelectionNames}"
+              Margin="5"
+              TextAlignment="Center"
+              TextWrapping="Wrap"/>
+          </StackPanel>
+
+          <StackPanel
+            IsVisible="{Binding IsSingleSelection, FallbackValue=False}"
+            Margin="10" Spacing="12">
+            <Border IsVisible="{Binding SelectedVpk, Converter={x:Static ObjectConverters.IsNotNull}}"
+                    Background="#1A2231" CornerRadius="7" Padding="12">
+              <StackPanel Spacing="8">
+                <TextBlock Text="替换对象" FontSize="12" Foreground="#98A8BE"/>
+                <TextBlock Text="{Binding SelectedVpk.Inspection.Summary}" FontSize="18" FontWeight="SemiBold" Foreground="#95BDF9" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding SelectedVpk.Inspection.Title}" TextWrapping="Wrap"/>
+                <Expander Header="识别依据" HorizontalAlignment="Stretch">
+                  <SelectableTextBlock Text="{Binding SelectedVpk.Inspection.Evidence}" FontSize="11" TextWrapping="Wrap"/>
+                </Expander>
+              </StackPanel>
+            </Border>
+            <v:AddonNodeView
+              Name="addonNodeView"
+              DataContext="{Binding SelectedNode, Converter={x:Static conv:AddonNodeConverters.ToViewModel}}"/>
+          </StackPanel>
+        </Panel>
+      </ScrollViewer>
+    </Border>
+    
+  </Grid>
+</UserControl>

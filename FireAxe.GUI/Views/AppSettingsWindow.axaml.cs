@@ -1,0 +1,47 @@
+// Modified for EmberKit, based on ktxiaok/FireAxe 0.7.3; see MODIFICATIONS.md.
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Markup.Xaml;
+using FireAxe.ViewModels;
+using FireAxe.Resources;
+using ReactiveUI;
+using System;
+using System.Reactive;
+using System.Reactive.Disposables;
+using ReactiveUI.Avalonia;
+using System.Reactive.Disposables.Fluent;
+
+namespace FireAxe.Views;
+
+public partial class AppSettingsWindow : ReactiveWindow<AppSettingsViewModel> 
+{
+    public AppSettingsWindow()
+    {
+        InitializeComponent();
+
+        this.WhenActivated((CompositeDisposable disposables) =>
+        {
+            
+        });
+
+        this.RegisterViewModelConnection(ConnectViewModel);
+    }
+
+    private void ConnectViewModel(AppSettingsViewModel viewModel, CompositeDisposable disposables)
+    {
+        viewModel.ChooseGamePathDirectoryInteraction.RegisterHandler(async context =>
+        {
+            context.SetOutput(await CommonMessageBoxes.ChooseDirectory(this, new ChooseDirectoryOptions { Title = Texts.SelectGamePath, StartDirectoryPath = viewModel.Settings.GamePath }));
+        }).DisposeWith(disposables);
+        viewModel.ConfirmFoundGamePathInteraction.RegisterHandler(async context =>
+        {
+            bool confirm = await CommonMessageBoxes.Confirm(this, Texts.ConfirmFoundGamePathMessage.FormatNoThrow(context.Input));
+            context.SetOutput(confirm);
+        }).DisposeWith(disposables);
+        viewModel.ReportGamePathNotFoundInteraction.RegisterHandler(async context =>
+        {
+            await CommonMessageBoxes.ShowInfo(this, Texts.GamePathNotFoundMessage);
+            context.SetOutput(Unit.Default);
+        }).DisposeWith(disposables);
+    }
+}
