@@ -1,0 +1,17 @@
+EmberKit · 2026-11-01
+基于 ktxiaok / FireAxe 0.7.3，感谢原作者的开发与开源。
+来源：https://github.com/ktxiaok/FireAxe
+许可：Apache-2.0，见 LICENSE.txt 与 NOTICE.txt。
+
+本版：TXT 导入导出、下载结果和文件位置、替换对象分类与空分类、
+目录自动复用、modebackup 短编号与 mod-index.txt、游戏入口同步、
+可选工坊 Hash 忽略与失败项重试。
+
+保留原项目的下载队列、分组、标签、优先级、引用与冲突检查等基础。
+默认校验工坊 Hash；忽略选项只影响用户明确加入的本批下载，
+仍检查大小与 VPK 格式，仍计算 SHA-256 存储身份。
+
+本体集中保存在 addons\modebackup，顶层为硬链接或所选的相对符号链接。
+两种入口不复制 Mod 内容；符号链接不是 Windows .lnk 快捷方式。
+游戏运行中显示待应用，完整重启后确认效果。
+最新功能与构建步骤见 README.zh-Hans.md；140 项自检通过。

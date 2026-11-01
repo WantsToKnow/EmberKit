@@ -1,0 +1,194 @@
+<!-- Modified for EmberKit, based on ktxiaok/FireAxe 0.7.3; see MODIFICATIONS.md. -->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:v="using:FireAxe.Views"
+        xmlns:vm="using:FireAxe.ViewModels"
+        xmlns:r="using:FireAxe.Resources"
+        xmlns:conv="using:FireAxe.ValueConverters"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="450"
+        x:Class="FireAxe.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/AppLogo.ico"
+        Title="{Binding TitleExtraInfo, StringFormat=EmberKit{0}}"
+        WindowStartupLocation="CenterScreen"
+        Width="1400" Height="850" MinWidth="1100" MinHeight="680">
+  <DockPanel>
+    <Menu DockPanel.Dock="Top">
+      <MenuItem Header="{x:Static r:Texts.File}">
+        <MenuItem Header="{x:Static r:Texts.OpenDirectory}" Command="{Binding OpenDirectoryCommand}" ToolTip.Tip="{x:Static r:Texts.OpenDirectoryTip}"/>
+        <MenuItem Header="{x:Static r:Texts.CloseDirectory}" Command="{Binding CloseDirectoryCommand}"/>
+        <Separator/>
+        <MenuItem Header="{x:Static r:Texts.Import}" Command="{Binding ImportCommand}" ToolTip.Tip="{x:Static r:Texts.ImportTip}"/>
+        <MenuItem Header="{x:Static r:Texts.ImportAddonRootFile}" Command="{Binding ImportAddonRootFileCommand}"/>
+        <Separator/>
+        <MenuItem Header="{x:Static r:Texts.Settings}" Command="{Binding OpenSettingsWindowCommand}"/>
+      </MenuItem>
+
+      <MenuItem Header="{x:Static r:Texts.Tools}">
+        <MenuItem Header="工坊下载 / TXT 分享" Command="{Binding AddonNodeExplorerViewModel.OpenWorkshopDownloadCommand}"/>
+        <MenuItem Header="本地存储与入口修复" Command="{Binding AddonNodeExplorerViewModel.OpenModOrganizerCommand}"/>
+          <MenuItem Header="主菜单应用 Mod（实验）" Command="{Binding AddonNodeExplorerViewModel.OpenMainMenuReloadCommand}"/>
+        <Separator/>
+        <MenuItem Header="{x:Static r:Texts.ProblemList}" Command="{Binding OpenProblemListWindowCommand}"/>
+        <MenuItem Header="{x:Static r:Texts.TagManager}" Command="{Binding OpenTagManagerWindowCommand}"/>
+        <MenuItem Header="{x:Static r:Texts.DownloadList}" Command="{Binding OpenDownloadListWindowCommand}"/>
+        <MenuItem Header="{x:Static r:Texts.VpkConflictList}" Command="{Binding OpenVpkConflictListWindowCommand}"/>
+        <MenuItem Header="{x:Static r:Texts.WorkshopVpkFinder}" Command="{Binding OpenWorkshopVpkFinderWindowCommand}"/>
+        <MenuItem Header="{x:Static r:Texts.AddonNameAutoSetter}" Command="{Binding OpenAddonNameAutoSetterWindowCommand}"/>
+      </MenuItem>
+      
+      <MenuItem Header="{x:Static r:Texts.Operations}">
+        <MenuItem Header="检查同步" Command="{Binding PushCommand}" ToolTip.Tip="启用状态已自动同步；点击重新核验本地入口。"/>
+        <MenuItem Header="{x:Static r:Texts.Check}" Command="{Binding CheckCommand}" ToolTip.Tip="{x:Static r:Texts.CheckAllTip}"/>
+        <MenuItem Header="{x:Static r:Texts.ClearCaches}" Command="{Binding ClearCachesCommand}" ToolTip.Tip="{x:Static r:Texts.ClearAllCachesTip}"/>
+        <MenuItem Header="{x:Static r:Texts.RandomlySelect}" Command="{Binding RandomlySelectCommand}" ToolTip.Tip="{x:Static r:Texts.RandomlySelectTip}"/>
+        <MenuItem Command="{Binding RandomlySelectForSelectedItemsCommand}"> 
+          <MenuItem.Header>
+            <MultiBinding StringFormat="{}{0} {1}">
+              <Binding Source="{x:Static r:Texts.RandomlySelect}"/>
+              <Binding Source="{x:Static r:Texts.HintSelectedItems}"/>
+            </MultiBinding>
+          </MenuItem.Header>
+        </MenuItem>
+
+        <MenuItem Header="{x:Static r:Texts.ExportSelectedItemsAsAddonRootFile}" Command="{Binding ExportSelectedItemsAsAddonRootFile}"/>
+        <MenuItem Header="{x:Static r:Texts.DeleteAddonsWithMissingFiles}" Command="{Binding DeleteAddonsWithMissingFilesCommand}"/>
+        <MenuItem Command="{Binding DeleteAddonsWithMissingFilesForSelectedItemsCommand}">
+          <MenuItem.Header>
+            <MultiBinding StringFormat="{}{0} {1}">
+              <Binding Source="{x:Static r:Texts.DeleteAddonsWithMissingFiles}"/>
+              <Binding Source="{x:Static r:Texts.HintSelectedItems}"/>
+            </MultiBinding>
+          </MenuItem.Header>
+        </MenuItem>
+        <Separator/>
+        
+        <MenuItem Header="Crash?">
+          <MenuItem Header="Crash!!!" Command="{Binding DummyCrash}"/>
+        </MenuItem>
+      </MenuItem>
+
+      <MenuItem Header="{x:Static r:Texts.Help}">
+        <MenuItem Header="{x:Static r:Texts.CheckForUpdates}" Command="{Binding CheckUpdateCommand}"/>
+        
+        <Separator/>
+        
+        <MenuItem Header="{x:Static r:Texts.AboutApp}" Command="{Binding OpenAboutWindowCommand}"/>
+      </MenuItem>
+    </Menu>
+
+    <DockPanel
+      DockPanel.Dock="Bottom"
+      LastChildFill="False"
+      Margin="10, 0, 10, 10">
+      <StackPanel
+        DockPanel.Dock="Left"
+        Orientation="Horizontal">
+        <Button
+          Command="{Binding CheckCommand}"
+          Content="{x:Static r:Texts.Check}"
+          ToolTip.Tip="{x:Static r:Texts.CheckAllTip}"
+          Margin="5, 0, 5, 0"/>
+        <StackPanel
+          Orientation="Horizontal"
+          IsVisible="{Binding AddonRoot.ProblemCount, Converter={x:Static conv:CollectionConverters.IsEmpty}, FallbackValue=False}"
+          Margin="5, 0, 5, 0">
+          <PathIcon
+            Data="{StaticResource icon_checkmark}"
+            Foreground="Green"/>
+          <Control Width="5"/>
+          <TextBlock
+            Text="{x:Static r:Texts.NoProblemFound}"
+            VerticalAlignment="Center"/>
+        </StackPanel>
+        <TextBlock
+          Text="{x:Static r:Texts.Checking}"
+          IsVisible="{Binding AddonRoot.CheckTask, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}"
+          Margin="5, 0, 5, 0"
+          VerticalAlignment="Center"/>
+        <Button
+          Command="{Binding OpenProblemListWindowCommand}"
+          IsVisible="{Binding AddonRoot.ProblemCount, Converter={x:Static conv:CollectionConverters.IsNotEmpty}, FallbackValue=False}"
+          Background="Transparent"
+          Margin="5, 0, 5, 0">
+          <StackPanel
+            Orientation="Horizontal">
+            <PathIcon
+              Data="{StaticResource icon_warning}"
+              Foreground="{DynamicResource brush_warning}"/>
+            <Control Width="5"/>
+            <TextBlock
+              Text="{Binding AddonRoot.ProblemCount, StringFormat={x:Static r:Texts.ProblemsFoundWithCount}}"
+              VerticalAlignment="Center"/>
+          </StackPanel>
+        </Button>
+      </StackPanel>
+
+      <StackPanel
+        DockPanel.Dock="Right"
+        Orientation="Horizontal">
+        <TextBlock
+          Text="{Binding LastPushDateTime, Converter={x:Static conv:DateTimeConverters.HourMinuteSecond}, StringFormat={x:Static r:Texts.LastPushedAt}}"
+          IsVisible="{Binding LastPushDateTime, Converter={x:Static ObjectConverters.IsNotNull}}"
+          Margin="5, 0, 5, 0"
+          VerticalAlignment="Center"/>
+        <Button
+          Command="{Binding PushCommand}"
+          ToolTip.Tip="启用状态已自动同步；点击重新核验本地入口。"
+          Margin="5, 0, 5, 0">
+          <StackPanel Orientation="Horizontal">
+            <PathIcon Data="{StaticResource icon_arrow_up_circle}"/>
+            <Control Width="5"/>
+            <TextBlock
+              Text="检查同步"
+              VerticalAlignment="Center"/>
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </DockPanel>
+    
+    <Panel Margin="10">
+      <v:AddonNodeExplorerView
+        DataContext="{Binding AddonNodeExplorerViewModel}"
+        IsVisible="{Binding AddonRoot, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}"/>
+      
+      <StackPanel
+        Orientation="Vertical"
+        IsVisible="{Binding IsEmptyDirectory}"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center">
+        <Button
+          Command="{Binding OpenDirectoryCommand}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal">
+            <PathIcon
+              Data="{StaticResource icon_folder}"
+              Width="32"
+              Height="{Binding $self.Width}"/>
+            <Control Width="10"/>
+            <TextBlock
+              Text="{x:Static r:Texts.OpenDirectory}"
+              FontSize="30"
+              VerticalAlignment="Center"/>
+          </StackPanel>
+        </Button>
+        <Control Height="15"/>
+        <TextBlock
+          Text="{x:Static r:Texts.OpenDirectoryNote}"
+          TextWrapping="Wrap"
+          TextAlignment="Center"
+          VerticalAlignment="Center"/>
+      </StackPanel>
+
+      <TextBlock
+        Text="{x:Static r:Texts.OpeningDirectory}"
+        IsVisible="{Binding IsOpeningDirectory, FallbackValue=False}"
+        FontSize="30"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center"/>
+    </Panel>
+  </DockPanel>
+</Window>

@@ -1,0 +1,116 @@
+# v0.7.3
+- change: UI Appearance (use Semi Theme) (thanks @TiO2EvoLve)
+- add: new operation: Delete Addons with Missing Files
+- add: AppImage support (thanks @ycna07)
+- improve: UI of addon move
+- improve: the width, height and maximized state of the MainWindow will be saved into the AppSettings
+- fix: the VPK conflict check system doesn't take into account reference addons
+- fix: the game path validity checker doesn't recognize Left 4 Dead 2 Dedicated Server
+- fix: clicking the check button in Problem List will cause the application to crash in some cases (issue #37)
+- bugfixes
+# v0.7.2
+- fix: addon preview image customization doesn't work in some cases
+- fix: VPK conflict check will fail if there're invalid VPKs (issue #30)
+- add: VPK file validity check
+- add: new shortcut keys: F2 to rename addon, Enter to submit editing and Esc to cancel editing (issue #29)
+- add: new context menu item: Open Workshop Page (issue #29)
+- add: Linux support (issue #27)
+- add: process file customization settings
+- improve: shorten the pushed link VPK file name to avoid problems caused by long file name (issue #27)
+- bugfixes
+# v0.7.1
+- add: new context menu item: create reference addons based on selected addons
+- add: new tool: File Name Fixer (this tool might help you solve the problem of missing addon files)
+- add: web proxy credential settings (issue #19)
+- improve: import of addons
+- improve: addon problem check system
+- improve: the backup file won't be created if it's the same as the latest one
+- improve: GUI appearance
+- bugfixes
+# v0.7.0
+- add: VPK conflict checking system
+- add: new addon type: reference addon (you can use this type to operate the same addon in different groups)
+- add: addon dependency management
+- add: new tool: Problem List
+- add: new tool: Addon Name Auto Setter
+- add: new tool: File Cleaner (supports deleting redundant VPK files for workshop items, download temp files and empty directories)
+- add: new tool: Workshop VPK Finder
+- add: .addonroot file backup function
+- add: support import and export for .addonroot files
+- add: addon deletion progress window
+- add: mechanism of addon linked files: all files with the same name as the addon file will follow the addon when it is moved
+- add: alternative method of customizing addon preview image: place an image file with the same name next to the addon file (issue #17)
+- add: web proxy address setting (issue #19)
+- add: Addon Advanced Panel
+- add: singleton mode: only one app instance is allowed to run at the same time
+- fix: deletion of addons doesn't delete the corresponding files in some cases
+- improve: better download logic of WorkshopVpkAddon
+- improve: move the addon priority setting to the AddonNode view and support addon global priority (now AddonGroups have priority too)   
+- remove: Flat VPK List (you can enable the Flatten option of the search options to realize this function approximately) 
+- add: Path and Parent Group to AddonNodeView
+- add: hotkeys "Ctrl+F" to focus the search text box, "Delete" to delete the selected addons and "Enter" to confirm operations in confirmation dialog boxes
+- add: app color theme settings (supporting Light and Dark)
+- add: addon sort method and addon view kind will be memorized
+- add: new addon sort methods: Sort by Tags, Sort by Priority, Sort by Global Priority, Sort by Problem Count
+- add: game path auto finding
+- change: rename "Default Order" to "No Sort"
+- improve: improve the addon problem checking system
+- upgrade: .NET from 8.0 to 10.0
+- upgrade: upgrade dependent packages
+- bugfixes
+# v0.6.1
+- add: addon preview image customization (issue #11)
+- upgrade: update dependent packages
+- add: workshop preview image cache (issue #11)
+- fix: hotkeys conflict with TextBox (issue #12)
+- bugfixes
+# v0.6.0
+- change: rename L4D2AddonAssistant to FireAxe
+- add: addon tag management
+- add: add the ability to apply tags from workshop
+- add: add some menu items to AddonNodeExplorerView
+- fix: push will fail if there're files with the same name
+- improve: improve performance
+- improve: add version check when opening directory
+- improve: auto remove WorkshopVpkFileNotLoadProblem when the download completes
+- change: rename the menu item "File->Open" to "File->Open Directory"
+- add: add menu item "File->Close Directory"
+- bugfixes
+# v0.5.1
+- fix: too many download tasks will crash the program (issue #7)
+- fix: cancelling a workshop collection creation will crash the program
+- fix: avoid circular references in linked workshop collections
+- add: moving addons display
+- add: support Ctrl+X and Ctrl+V to move addons and support mouse side button to goto the parent group
+# v0.5.0
+- add: workshop collection creation
+- add: auto set the name of the workshop addon after download
+- add: auto redownload items (disabled by default)
+- add: flat vpk list window
+- add: open workshop page button
+# v0.4.1
+- improve: select all text when edit text
+- fix: some workshop links can't be parsed
+- improve: auto refresh images after downloading
+- fix: add try/catch block on opening clipboard
+- fix: "Single" strategy of enablement problem
+# v0.4.0
+- fix: renaming bug
+- improve: change the deletion behavior from direct deletion to move to recycle bin (Windows only)
+- add: show in the file explorer (Windows only)
+- add: auto detect workshop item link in the clipboard
+- add: vpk priority setting
+# v0.3.0
+- add: creation time display
+- add: sort by creation time
+- add: randomly select
+- fix: fix some bugs
+- add: download list window
+- add: an error dialog box will pop up if the user opens the directory "left4dead2/addons"
+# v0.2.0
+- improve: AddonNodeView
+- fix: WorkshopVpkAddon.FullVpkFilePath is sometimes not updated
+- improve: WorkshopVpkAddonSectionView
+- improve: check addons after import and check addons before push
+- add: check for updates
+- add: addon problems display
