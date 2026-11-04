@@ -551,6 +551,7 @@ public class AddonNodeExplorerViewModel : ViewModelBase, IActivatableViewModel, 
 
     public ReactiveCommand<Unit, Unit> OpenWorkshopDownloadCommand { get; }
     public ReactiveCommand<Unit, Unit> LaunchGameCommand { get; }
+    public KillFeedbackSettings KillFeedback => _addonRoot.KillFeedback;
     public ReactiveCommand<Unit, Unit> ImportWorkshopTextCommand { get; }
     public ReactiveCommand<Unit, Unit> ExportWorkshopTextCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenWorkshopBackupCommand { get; }

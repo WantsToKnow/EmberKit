@@ -19,10 +19,14 @@ internal static partial class Program
                 "portable app state is anchored to the executable directory even when launched from elsewhere");
             using var settings = new AppSettings(app);
             settings.GamePath = game;
+            settings.KillFeedback.Enabled = true;
+            settings.KillFeedback.Scope = 0;
             settings.Save();
             Check(settings.SettingsFilePath == Path.Combine(expected, "Settings.json") && File.Exists(settings.SettingsFilePath),
                 "application settings are saved beside the executable instead of the user's Documents folder");
             using var reloaded = new AppSettings(app);
+            Check(reloaded.KillFeedback.Enabled && reloaded.KillFeedback.Scope == 0,
+                "feedback preferences persist inside application settings and survive a new settings instance");
             Check(FileSystemUtils.IsSamePath(reloaded.GamePath, game) && reloaded.CustomVpkAddonConflictIgnoringFilesDirectoryPath.StartsWith(expected + Path.DirectorySeparatorChar),
                 "saved settings reload locally and custom conflict rules also stay inside portable data");
             Check(AppDataPaths.LogDirectory.StartsWith(expected + Path.DirectorySeparatorChar)

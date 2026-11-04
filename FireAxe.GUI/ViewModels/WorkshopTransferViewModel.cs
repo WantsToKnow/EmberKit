@@ -72,19 +72,30 @@ public sealed class WorkshopTransferViewModel : ViewModelBase, IDisposable
         {
             var console = CreateGameConsole();
             if (ModStorage.IsGameRunning(console.GameDirectory)) throw new InvalidOperationException("游戏已经运行。请先检查连接；若不是通过助手启动，需要退出游戏后再用此按钮启动一次。");
+            var feedback = new KillFeedbackSettings { Enabled = KillFeedback.Enabled, Scope = KillFeedback.Scope };
             var result = await _root.Storage.RefreshAsync(token);
             if (result.Pending || result.Warnings.Length > 0) throw new IOException("本地整理尚未完成：" + _root.Storage.Status);
             token.ThrowIfCancellationRequested();
-            using var process = Process.Start(console.PrepareLaunch());
-            GameConnectionStatus = "已交给 Steam 启动，请等游戏主菜单出现，再检查连接或应用 Mod。";
+            using var process = Process.Start(console.PrepareLaunch(feedback));
+            GameConnectionStatus = feedback.Enabled
+                ? "已按普通方式交给 Steam 启动；正在等待本次游戏连接并加载自产客户端反馈模块…"
+                : "已交给 Steam 启动，请等游戏主菜单出现，再检查连接或应用 Mod。";
             Status = GameConnectionStatus;
+            if (feedback.Enabled)
+            {
+                try { GameConnectionStatus = await console.AttachFeedbackAsync(token); }
+                catch (OperationCanceledException) { GameConnectionStatus = "已取消等待反馈初始化；游戏保持运行，已发起的模块加载可能仍会完成。"; }
+                catch (Exception ex) { GameConnectionStatus = "游戏已启动，但击杀反馈未就绪：" + ex.Message; }
+                Status = GameConnectionStatus;
+            }
         }), ready);
         CheckGameConnectionCommand = ReactiveCommand.CreateFromTask(() => RunAsync(async token =>
         {
             GameConnectionStatus = "正在连接游戏…";
             await using var connection = await CreateGameConsole().ConnectAsync(token);
             var mounted = await connection.ReadMountedAddonsAsync(token);
-            GameConnectionStatus = $"已连接游戏，并核对安装目录；当前挂载 {mounted.Count} 个 Mod。应用按钮会自动断开地图或服务器、返回主菜单。";
+            var feedback = KillFeedback.Enabled ? " " + await connection.ReadKillFeedbackAsync(token) : "";
+            GameConnectionStatus = $"已连接游戏，并核对安装目录；当前挂载 {mounted.Count} 个 Mod。" + feedback + " 应用按钮会自动断开地图或服务器、返回主菜单。";
             Status = GameConnectionStatus;
         }), ready);
         ApplyInMainMenuCommand = ReactiveCommand.CreateFromTask(() => RunAsync(async token =>
@@ -116,8 +127,9 @@ public sealed class WorkshopTransferViewModel : ViewModelBase, IDisposable
     public string Report { get; private set => this.RaiseAndSetIfChanged(ref field, value); } = "";
     public string Status { get; private set => this.RaiseAndSetIfChanged(ref field, value); } = "就绪。操作结果和跳过原因会显示在这里。";
     public bool EnabledOnly { get; set => this.RaiseAndSetIfChanged(ref field, value); }
-    public bool EnableDownloads { get; set => this.RaiseAndSetIfChanged(ref field, value); }
+    public bool EnableDownloads { get; set => this.RaiseAndSetIfChanged(ref field, value); } = true;
     public bool IgnoreWorkshopHash { get; set => this.RaiseAndSetIfChanged(ref field, value); } = true;
+    public KillFeedbackSettings KillFeedback => _root.KillFeedback;
     public string GamePath { get => _root.GamePath; set => _root.GamePath = value; }
     public string? LibraryDirectoryPath => _root.IsDirectoryPathSet ? _root.DirectoryPath : null;
     public bool KeepSnapshot { get; set => this.RaiseAndSetIfChanged(ref field, value); } = true;

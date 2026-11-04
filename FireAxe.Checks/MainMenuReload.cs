@@ -166,6 +166,7 @@ internal static partial class Program
         private readonly Task _task;
         public readonly ConcurrentQueue<string> Commands = new();
         public bool WrongDirectory, RejectUnload, IgnoreMount;
+        public string FeedbackDescription = "";
         public Action? AfterUnload;
 
         public FakeGameConsole(string game, int port, string password, string initialEntry)
@@ -191,6 +192,9 @@ internal static partial class Program
                             Commands.Enqueue(command);
                             switch (command)
                             {
+                                case "plugin_print":
+                                    await writer.WriteLineAsync("Loaded plugins:\n" + FeedbackDescription);
+                                    break;
                                 case "path":
                                     // Actual L4D2 `path` output omits every mounted VPK archive.
                                     await writer.WriteLineAsync("---------------\nPath ID:             File Path:");

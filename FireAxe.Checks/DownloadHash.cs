@@ -11,7 +11,7 @@ internal static partial class Program
 {
     private static void CheckDownloadHashOption(string output)
     {
-        var directory = Path.Combine(output, "hash-option-" + Guid.NewGuid().ToString("N"));
+        var directory = Path.Combine(output, "hash-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(directory);
         var sample = Path.Combine(directory, "sample.vpk");
         WriteVpk(sample, "Hash mismatch sample", "models/v_models/v_rif_ak47.mdl");
@@ -20,12 +20,14 @@ internal static partial class Program
         var downloads = new FixtureDownloads(data);
         var root = new AddonRoot { DirectoryPath = Path.Combine(directory, "game", "left4dead2", "addons"),
             TaskScheduler = TaskScheduler.FromCurrentSynchronizationContext(), HttpClient = client, DownloadService = downloads };
-        using var model = new WorkshopTransferViewModel(root) { LinkText = "47", EnableDownloads = true };
+        using var model = new WorkshopTransferViewModel(root) { LinkText = "47" };
         var window = new WorkshopTransferWindow { ViewModel = model };
         window.Show();
         PumpFrames();
-        Check(model.IgnoreWorkshopHash && HashOption().IsChecked == true,
-            "link downloads skip the workshop hash comparison by default and show the selected option");
+        Check(model.IgnoreWorkshopHash && HashOption().IsChecked == true && model.EnableDownloads
+            && window.GetVisualDescendants().OfType<CheckBox>().Any(box => box.IsEffectivelyVisible
+                && box.Content as string == "下载完成后自动启用" && box.IsChecked == true),
+            "link downloads default to skipping workshop hashes and enabling completed mods, with both options checked");
         HashOption().IsChecked = false;
         Check(!model.IgnoreWorkshopHash, "users can explicitly enable strict workshop hash checking");
         ((ICommand)model.DownloadCommand).Execute(null);
@@ -86,7 +88,8 @@ internal static partial class Program
         Check(Result(49)!.HashCheckSkipped && Result(49)!.Error!.Contains("大小") && root.DownloadHistory.FindInstalled(49) is null,
             "bypass still rejects a download whose size differs from Steam metadata");
         using (var reopened = new WorkshopTransferViewModel(root))
-            Check(reopened.IgnoreWorkshopHash, "reopening the dialog restores the default of ignoring workshop hashes");
+            Check(reopened.IgnoreWorkshopHash && reopened.EnableDownloads,
+                "reopening the dialog restores the defaults of ignoring workshop hashes and enabling completed mods");
         window.Close();
         Complete(root.DisposeAsync().AsTask());
 

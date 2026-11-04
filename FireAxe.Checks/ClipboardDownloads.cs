@@ -9,7 +9,8 @@ internal static partial class Program
 {
     private static void CheckClipboardDownloads(string output)
     {
-        var directory = Path.Combine(output, "clipboard-" + Guid.NewGuid().ToString("N"));
+        // Keep enabled VPK entry paths below the game's 127-byte limit.
+        var directory = Path.Combine(output, "clip-" + Guid.NewGuid().ToString("N")[..8]);
         var addons = Path.Combine(directory, "game", "left4dead2", "addons");
         Directory.CreateDirectory(addons);
         var sample = Path.Combine(directory, "sample.vpk");
@@ -50,9 +51,9 @@ internal static partial class Program
         Pump(() => window.OwnedWindows.OfType<WorkshopTransferWindow>().Any());
         var transfer = window.OwnedWindows.OfType<WorkshopTransferWindow>().Single();
         var model = transfer.ViewModel!;
-        Check(model.SelectedTab == 0 && model.LinkText == link && model.IgnoreWorkshopHash
+        Check(model.SelectedTab == 0 && model.LinkText == link && model.IgnoreWorkshopHash && model.EnableDownloads
             && !root.GetDescendants().Any() && steam.MetadataRequests == 0,
-            "accepting a clipboard link opens the new link-download page with the copied URL and default hash option, without creating a legacy mod");
+            "accepting a clipboard link opens the shared downloader with hash checks skipped and automatic enabling selected, without creating a legacy mod");
         main.CheckClipboard();
         PumpFrames();
         Check(prompts == 2 && window.OwnedWindows.OfType<WorkshopTransferWindow>().Count() == 1,
@@ -61,10 +62,11 @@ internal static partial class Program
         var queued = 0;
         root.NewDownloadItem += _ => queued++;
         ((ICommand)model.DownloadCommand).Execute(null);
-        Pump(() => !model.IsBusy && root.DownloadHistory.FindInstalled(51) is not null);
+        Pump(() => !model.IsBusy && root.DownloadHistory.FindInstalled(51) is { IsGameSynchronized: true });
         Check(queued == 1 && root.DownloadHistory.GetResults().Single().HashCheckSkipped
+            && root.DownloadHistory.FindInstalled(51) is { IsEnabledInHierarchy: true, IsGameSynchronized: true }
             && model.DownloadResults.Single().CanOpenFile,
-            "clipboard downloads use the shared progress queue, archive and visible result history with hash comparison skipped");
+            "clipboard downloads automatically enable and synchronize the installed mod, with shared history and hash comparison skipped");
         transfer.Close();
         window.Close();
         main.CloseDirectory();

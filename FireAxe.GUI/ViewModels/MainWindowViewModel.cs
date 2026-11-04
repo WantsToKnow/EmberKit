@@ -32,6 +32,8 @@ public sealed class MainWindowViewModel : ViewModelBase, IActivatableViewModel, 
 
         public bool IsAutoUpdateWorkshopItem => _mainWindowViewModel._appSettings.IsAutoUpdateWorkshopItem;
 
+        public KillFeedbackSettings KillFeedback => _mainWindowViewModel._appSettings.KillFeedback;
+
         public string GamePath
         {
             get => _mainWindowViewModel._appSettings.GamePath;

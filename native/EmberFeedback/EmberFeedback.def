@@ -1,0 +1,3 @@
+LIBRARY EmberFeedback
+EXPORTS
+    EmberFeedback_Start=_EmberFeedback_Start@4

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Host|Win32"><Configuration>Host</Configuration><Platform>Win32</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Module|Win32"><Configuration>Module</Configuration><Platform>Win32</Platform></ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals"><ProjectGuid>{83D2808C-993E-4140-A907-087BD93BA1A7}</ProjectGuid><WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion></PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration"><ConfigurationType Condition="'$(Configuration)'=='Host'">Application</ConfigurationType><ConfigurationType Condition="'$(Configuration)'=='Module'">DynamicLibrary</ConfigurationType><PlatformToolset>v143</PlatformToolset><CharacterSet>Unicode</CharacterSet></PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup><OutDir>$(MSBuildThisFileDirectory)bin\Fixtures\</OutDir><IntDir>$(MSBuildThisFileDirectory)obj\Fixture-$(Configuration)\</IntDir><TargetName Condition="'$(Configuration)'=='Host'">EmberFeedback.FixtureHost</TargetName><TargetName Condition="'$(Configuration)'=='Module'">EmberFeedback</TargetName></PropertyGroup>
+  <ItemDefinitionGroup><ClCompile><WarningLevel>Level4</WarningLevel><LanguageStandard>stdcpp17</LanguageStandard><RuntimeLibrary>MultiThreaded</RuntimeLibrary><AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions><ExceptionHandling>Sync</ExceptionHandling><PreprocessorDefinitions Condition="'$(Configuration)'=='Module'">EMBER_FIXTURE_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions></ClCompile><Link Condition="'$(Configuration)'=='Module'"><ModuleDefinitionFile>EmberFeedback.def</ModuleDefinitionFile></Link></ItemDefinitionGroup>
+  <ItemGroup><ClCompile Include="fixture.cpp" /></ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

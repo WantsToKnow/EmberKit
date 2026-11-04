@@ -79,12 +79,16 @@ public sealed class AppSettings : ObservableObject, ISaveable, IDisposable
 
         LoadCustomVpkAddonConflictIgnoringFilesCommand = ReactiveCommand.CreateFromTask(LoadCustomVpkAddonConflictIgnoringFilesAsync);
 
+        KillFeedback.PropertyChanged += (_, _) => RequestSave = true;
         LoadFile();
         if (GamePathUtils.Resolve(GamePath, LastOpenDirectory) is { } gamePath) GamePath = gamePath;
         LoadCustomVpkAddonConflictIgnoringFilesCommand.Execute().Subscribe();
     }
 
     public bool RequestSave { get; set; } = true;
+
+    [JsonProperty]
+    public KillFeedbackSettings KillFeedback { get; } = new();
 
     public string SettingsFilePath => _settingsFilePath;
 

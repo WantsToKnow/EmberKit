@@ -209,6 +209,7 @@ internal static partial class Program
         CheckLinkedSizesAndSelection(output);
         CheckPathReuse(output);
         CheckPortableAppData(output);
+        CheckKillFeedback(output);
         if (args.Contains("--live")) CheckLiveWorkshop(output);
         var dispose = root.DisposeAsync().AsTask();
         Pump(() => dispose.IsCompleted);

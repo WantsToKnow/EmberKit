@@ -7,6 +7,8 @@ public interface IAddonRootParentSettings
 {
     string GamePath { get; set; }
 
+    KillFeedbackSettings? KillFeedback => null;
+
     bool IsAutoUpdateWorkshopItem { get; }
 
     VpkAddonConflictCheckSettings VpkAddonConflictCheckSettings { get; }

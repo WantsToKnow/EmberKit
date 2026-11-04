@@ -211,6 +211,9 @@ public sealed class AddonRoot : ObservableObject, IAsyncDisposable, IAddonNodeCo
 
     public bool IsAutoUpdateWorkshopItem => ParentSettings?.IsAutoUpdateWorkshopItem ?? false;
 
+    private readonly KillFeedbackSettings _localKillFeedback = new();
+    public KillFeedbackSettings KillFeedback => ParentSettings?.KillFeedback ?? _localKillFeedback;
+
     public VpkAddonConflictCheckSettings VpkAddonConflictCheckSettings => ParentSettings?.VpkAddonConflictCheckSettings ?? VpkAddonConflictCheckSettings.Default;
 
     IAddonNodeContainer? IAddonNodeContainer.Parent => null;

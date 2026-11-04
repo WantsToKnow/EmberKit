@@ -1,0 +1,19 @@
+These optional reference assets were supplied by the user in l4d2_skull.zip.
+They were extracted statically from skull_client_spine.dll; that DLL was never
+loaded or executed and is not used or distributed by this implementation.
+
+skull.png        = RCDATA 1001, SHA-256 194a72a3445912f5ff8bd5a2d69bd2ccb3b2a1e3b8068aa8e243f028891e1e4b
+headshot.png     = RCDATA 1002, SHA-256 d70a771ed0e5197ece2a98daf7c1da51455627e026b53b0b0464d7c0909fd5b2
+kill.wav         = RCDATA 120,  SHA-256 ecc7e5362441148d535b69dd2734a3d7fa91379c43f92a8417ad6f61a34c2b8d
+headshot.wav     = RCDATA 121,  SHA-256 89a8fc63b1d49eba7ed696b532f9cabd94479e843ea286501a192c62a53573a3
+
+Reference video: https://www.bilibili.com/video/BV18Npz6QEzo/
+The reference credits MinecraftGD656 for animation, captions and sounds,
+and regoists / Skeeto for the kill-trigger approach.
+The package explicitly records: "asset_redistribution_rights":
+"not established by available records; see provenance notices".
+
+These assets are NOT covered by EmberKit's Apache-2.0 code license.
+They are for the user's local prototype; obtain permission or replace them
+with appropriately licensed assets before public redistribution.
+All new runtime, filtering, rendering and build code is available as source.

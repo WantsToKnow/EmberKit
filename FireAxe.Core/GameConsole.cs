@@ -9,22 +9,24 @@ using System.Text.RegularExpressions;
 namespace FireAxe;
 
 // Source's built-in, password-protected net console. No game process memory access.
-public sealed class GameConsole(string gameDirectory, string? settingsDirectory = null)
+public sealed class GameConsole(string gameDirectory, string? settingsDirectory = null, string? feedbackModuleDirectory = null)
 {
-    private sealed record Settings(int Port, string Password);
+    private sealed record Settings(int Port, string Password, string? FeedbackSession = null, int FeedbackProcessId = 0);
+    public FeedbackLaunchRequest? FeedbackRequest { get; private set; }
     public string GameDirectory { get; } = Path.TrimEndingDirectorySeparator(Path.GetFullPath(gameDirectory));
     private string SettingsPath => Path.Combine(settingsDirectory ?? AppDataPaths.GameConsoleDirectory,
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(GameDirectory.ToUpperInvariant())))[..24] + ".json");
 
     // Called only by the explicit launch button, while the game is not running.
-    public ProcessStartInfo PrepareLaunch()
+    public ProcessStartInfo PrepareLaunch(KillFeedbackSettings? feedback = null)
     {
         if (!GamePathUtils.CheckValidity(GameDirectory)) throw new InvalidOperationException("请先设置游戏目录。");
         if (ModStorage.IsGameRunning(GameDirectory))
             throw new InvalidOperationException("游戏已经运行。若本次不是通过助手启动，请先退出游戏，再点「通过助手启动游戏」。");
+        FeedbackRequest = feedback is { Enabled: true } ? KillFeedbackLaunch.Prepare(GameDirectory, feedback, feedbackModuleDirectory) : null;
         using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
-        var settings = new Settings(((IPEndPoint)listener.LocalEndpoint).Port, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)));
+        var settings = new Settings(((IPEndPoint)listener.LocalEndpoint).Port, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)), FeedbackRequest?.Session);
         Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
         var temporary = SettingsPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
@@ -35,6 +37,77 @@ public sealed class GameConsole(string gameDirectory, string? settingsDirectory 
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
         var arguments = $"-netconport {settings.Port} -netconpassword {settings.Password}";
         return new("steam://run/550//" + Uri.EscapeDataString(arguments) + "/") { UseShellExecute = true };
+    }
+
+    public async Task<string> AttachFeedbackAsync(CancellationToken token = default)
+    {
+        var request = FeedbackRequest ?? throw new InvalidOperationException("本次启动未请求击杀反馈。");
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+        timeout.CancelAfter(TimeSpan.FromSeconds(90));
+        try
+        {
+            // A successful authenticated console/path receipt ties the helper to THIS assistant launch.
+            // No attachment to a pre-existing or unrelated game process is attempted.
+            while (true)
+            {
+                timeout.Token.ThrowIfCancellationRequested();
+                try { await using var connection = await ConnectAsync(timeout.Token); break; }
+                catch (IOException) { await Task.Delay(500, timeout.Token); }
+                catch (TimeoutException) { await Task.Delay(500, timeout.Token); }
+            }
+            using var game = FindNewGameProcess(request.CreatedUtc)
+                ?? throw new IOException("已经连接游戏，但未找到本次启动的匹配游戏进程；未装载客户端模块。");
+            var settings = JsonSerializer.Deserialize<Settings>(await File.ReadAllTextAsync(SettingsPath, timeout.Token))!;
+            if (settings.FeedbackSession != request.Session) throw new IOException("启动会话已变更，未装载模块。");
+            // Keep the PID with the session, so later connection checks cannot reuse stale native status.
+            var temporary = SettingsPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(settings with { FeedbackProcessId = game.Id }), timeout.Token);
+                File.Move(temporary, SettingsPath, true);
+            }
+            finally { if (File.Exists(temporary)) File.Delete(temporary); }
+            using var loader = Process.Start(KillFeedbackLaunch.BuildLoaderStartInfo(game.Id, Path.Combine(GameDirectory, "left4dead2.exe"), request.ModuleDirectory, request.Session))
+                ?? throw new IOException("客户端加载器没有启动。");
+            var stdout = loader.StandardOutput.ReadToEndAsync();
+            var stderr = loader.StandardError.ReadToEndAsync();
+            // The x86 helper has bounded native waits. Do not kill it or the game on UI cancellation.
+            using var loaderTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(40));
+            await loader.WaitForExitAsync(loaderTimeout.Token);
+            var report = (await stdout) + (await stderr);
+            await File.AppendAllTextAsync(Path.Combine(KillFeedbackLaunch.StateDirectory(request.ModuleDirectory), "EmberFeedback.Loader.log"), report);
+            if (loader.ExitCode != 0) throw new IOException("游戏已启动，但客户端模块未载入：" + report.Trim());
+            var readyUntil = DateTime.UtcNow.AddSeconds(15);
+            while (DateTime.UtcNow < readyUntil)
+            {
+                timeout.Token.ThrowIfCancellationRequested();
+                if (game.HasExited) throw new IOException("游戏在模块初始化期间退出。");
+                var status = KillFeedbackLaunch.ReadStatus(request.ModuleDirectory, request.Session, game.Id);
+                if (status is { Initialized: true }) return status.Describe();
+                await Task.Delay(250, timeout.Token);
+            }
+            throw new IOException("DLL 装载已返回，但未收到游戏绘制线程的初始化回执；请查看 data/Feedback 中的日志和本次会话状态。");
+        }
+        catch (OperationCanceledException) when (!token.IsCancellationRequested)
+        {
+            throw new IOException("等待游戏或客户端模块超时；游戏保持运行，未重复装载。请查看 data/Feedback 中的日志。");
+        }
+    }
+
+    private Process? FindNewGameProcess(DateTime createdUtc)
+    {
+        var expected = Path.Combine(GameDirectory, "left4dead2.exe");
+        foreach (var process in Process.GetProcessesByName("left4dead2"))
+        {
+            try
+            {
+                if (process.StartTime.ToUniversalTime() >= createdUtc.AddSeconds(-1)
+                    && string.Equals(Path.GetFullPath(process.MainModule!.FileName), expected, StringComparison.OrdinalIgnoreCase)) return process;
+            }
+            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { }
+            process.Dispose();
+        }
+        return null;
     }
 
     public async Task<Connection> ConnectAsync(CancellationToken token = default)
@@ -49,7 +122,7 @@ public sealed class GameConsole(string gameDirectory, string? settingsDirectory 
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
             timeout.CancelAfter(TimeSpan.FromSeconds(5));
             await client.ConnectAsync(IPAddress.Loopback, settings.Port, timeout.Token);
-            var connection = new Connection(client, GameDirectory);
+            var connection = new Connection(client, GameDirectory, feedbackModuleDirectory ?? KillFeedbackLaunch.ModuleDirectory, settings.FeedbackSession, settings.FeedbackProcessId);
             try
             {
                 await client.GetStream().WriteAsync(Encoding.ASCII.GetBytes("PASS " + settings.Password + "\n"), timeout.Token);
@@ -73,12 +146,18 @@ public sealed class GameConsole(string gameDirectory, string? settingsDirectory 
         private readonly TcpClient _client;
         private readonly StreamReader _reader;
         private readonly string _gameDirectory;
+        private readonly string _feedbackDirectory;
+        private readonly string? _feedbackSession;
+        private readonly int _feedbackProcessId;
 
-        internal Connection(TcpClient client, string gameDirectory)
+        internal Connection(TcpClient client, string gameDirectory, string feedbackDirectory, string? feedbackSession, int feedbackProcessId)
         {
             _client = client;
             _reader = new(client.GetStream(), Encoding.UTF8, false, 4096, leaveOpen: true);
             _gameDirectory = NormalizePath(Path.Combine(gameDirectory, "left4dead2"));
+            _feedbackDirectory = feedbackDirectory;
+            _feedbackSession = feedbackSession;
+            _feedbackProcessId = feedbackProcessId;
         }
 
         public static string NormalizePath(string text) => text.Replace('\\', '/');
@@ -131,6 +210,14 @@ public sealed class GameConsole(string gameDirectory, string? settingsDirectory 
             return NormalizePath(reply).Split('\n').Select(line => line.Trim().Trim('"'))
                 .Where(path => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && path.EndsWith(".vpk", StringComparison.OrdinalIgnoreCase))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+
+        public Task<string> ReadKillFeedbackAsync(CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested();
+            var status = KillFeedbackLaunch.ReadStatus(_feedbackDirectory, _feedbackSession ?? "", _feedbackProcessId);
+            if (status is not { Initialized: true }) throw new IOException("尚未收到本次客户端反馈初始化回执；请查看 data/Feedback 中的加载器及模块日志。");
+            return Task.FromResult(status.Describe());
         }
 
         public static void CheckCommand(string output)

@@ -63,6 +63,12 @@ public class WorkshopVpkAddon : VpkAddon
     public bool RequestAutoSetName { get; set; }
     public bool RequestApplyTagsFromWorkshop { get; set; } = true;
 
+    protected override void OnCreate()
+    {
+        base.OnCreate();
+        IsEnabled = true;
+    }
+
     public async Task<GetPublishedFileDetailsResult> GetPublishedFileDetailsAsync(CancellationToken cancellationToken = default)
     {
         if (PublishedFileId is not { } id) return new(null, GetPublishedFileDetailsResultStatus.InvalidPublishedFileId);

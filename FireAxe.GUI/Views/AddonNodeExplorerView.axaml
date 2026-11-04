@@ -49,6 +49,15 @@
                 <TextBlock Text="求生之路 2" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"/>
               </StackPanel>
             </Button>
+            <CheckBox Name="killFeedbackCheckBox" Content="启用击杀反馈" IsChecked="{Binding KillFeedback.Enabled}"
+                      ToolTip.Tip="按普通 Steam 方式启动，验证本次连接后加载自产客户端模块；不添加 -insecure。服务器兼容性仍需实测。"/>
+            <ComboBox Name="killFeedbackScope" SelectedIndex="{Binding KillFeedback.Scope}" IsEnabled="{Binding KillFeedback.Enabled}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="击杀反馈触发范围">
+              <ComboBoxItem Content="所有僵尸"/>
+              <ComboBoxItem Content="仅特感（含 Tank / Witch）"/>
+            </ComboBox>
+            <TextBlock Text="普通启动；进入主菜单后会核对模块回执。" IsVisible="{Binding KillFeedback.Enabled}"
+                       Foreground="#A8BBD8" FontSize="12" TextWrapping="Wrap"/>
             <TextBlock Text="从这里启动，即可使用「主菜单应用」功能。" FontSize="12" Foreground="#B8E99B" TextWrapping="Wrap"/>
           </StackPanel>
         </Grid>

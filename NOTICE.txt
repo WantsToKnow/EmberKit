@@ -10,3 +10,10 @@ The original FireAxe development, existing downloader, management features,
 and other upstream work remain attributed to their original contributors.
 Modified upstream source files carry an EmberKit modification notice.
 See MODIFICATIONS.md and README.zh-Hans.md for the additions.
+
+EmberKit Kill Feedback is new Apache-2.0 source code by EmberKit contributors.
+Source ABI references are recorded in native/EmberFeedback/source_abi.h.
+The locally supplied reference images and sounds have separate provenance
+and are not covered by this code license. See Feedback/assets/PROVENANCE.txt
+in a local build, or native/EmberFeedback/assets/PROVENANCE.txt in the source.
+No reference mod executable or DLL is included in the implementation.

@@ -21,6 +21,16 @@
     <None Include="ExportedAssets\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <Target Name="BuildKillFeedback" BeforeTargets="BeforeBuild" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\scripts\build-feedback.ps1&quot; -Configuration $(Configuration)" />
+  </Target>
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <None Include="..\native\EmberFeedback\bin\$(Configuration)\EmberFeedback.dll" Link="Feedback\EmberFeedback.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\native\EmberFeedback\bin\$(Configuration)\EmberFeedback.Loader.exe" Link="Feedback\EmberFeedback.Loader.exe" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\native\EmberFeedback\README.txt" Link="Feedback\README.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\native\EmberFeedback\assets\**\*" Link="Feedback\assets\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <AvaloniaResource Remove="Assets\CommonResources.axaml" />
     <AvaloniaResource Remove="Assets\Texts.resx" />
