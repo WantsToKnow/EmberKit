@@ -16,6 +16,7 @@
 #include <vector>
 #include "source_abi.h"
 #include "feedback_logic.h"
+#include "feedback_animation.h"
 
 namespace {
 HMODULE ownModule;
@@ -26,7 +27,7 @@ unsigned long long paintFrames{}, deathEvents{}, acceptedKills{}, hudDraws{};
 int registeredEvents{}, scope = 1;
 bool audioReady{};
 ULONGLONG nextReport{};
-constexpr const char* debugVersion = "fix-20261104-2";
+constexpr const char* debugVersion = "anim-20261104-1";
 // Keep checkpoints observable to the hardware-exception filter in /O2 builds.
 thread_local const char* volatile currentOperation{};
 struct Operation {
@@ -186,6 +187,15 @@ bool SupportedModules() {
 }
 
 struct Image { int width{}, height{}; std::vector<unsigned char> pixels; };
+Image RingImage() {
+    Image image{ 128, 128, std::vector<unsigned char>(128 * 128 * 4, 255) };
+    for (int y = 0; y < image.height; ++y) for (int x = 0; x < image.width; ++x) {
+        float dx = x - 63.5f, dy = y - 63.5f;
+        float edge = std::abs(std::sqrt(dx * dx + dy * dy) - 56);
+        image.pixels[(static_cast<size_t>(y) * image.width + x) * 4 + 3] = static_cast<unsigned char>(255 * ember::Unit(2 - edge));
+    }
+    return image;
+}
 bool ReadImage(const std::filesystem::path& path, Image& image) {
     IWICImagingFactory* factory{};
     IWICBitmapDecoder* decoder{};
@@ -310,8 +320,8 @@ class Plugin final : public source::Listener {
     void** paintSlot_{};
     Paint originalPaint_{};
     int teamOffset_ = -1, zombieOffset_ = -1;
-    std::array<Image, 2> images_;
-    std::array<int, 2> textures_{ -1, -1 };
+    std::array<Image, 3> images_;
+    std::array<int, 3> textures_{ -1, -1, -1 };
     unsigned long font_{};
     int fontHeight_{};
     bool active_{}, paintLogged_{}, subscriptionsLogged_{}, ownsCom_{};
@@ -319,6 +329,7 @@ class Plugin final : public source::Listener {
     ULONGLONG nextSubscribe_{};
     Audio audio_;
     ember::Feedback feedback_;
+    ember::SkullAnimation animation_;
     static constexpr const char* eventNames_[] = {
         "player_death", "infected_death", "witch_killed", "round_start", "round_end", "map_transition",
         "player_team", "player_bot_replace", "bot_player_replace", "server_spawn"
@@ -414,8 +425,8 @@ class Plugin final : public source::Listener {
         DWORD foreground{}; GetWindowThreadProcessId(GetForegroundWindow(), &foreground);
         if (foreground != GetCurrentProcessId()) { renderState = "background"; return; }
         auto now = GetTickCount64();
-        if (!feedback_.visible) { renderState = "no_accepted_kill"; return; }
-        if (now < feedback_.last || now - feedback_.last > 1800) { renderState = "effect_expired"; return; }
+        if (!feedback_.visible) { animation_.Reset(); renderState = "no_accepted_kill"; return; }
+        if (now < feedback_.last || now - feedback_.last > 1800) { animation_.Reset(); renderState = "effect_expired"; return; }
         if (!paintLogged_) { Log("Feedback draw reached the in-game HUD panel."); paintLogged_ = true; }
         for (size_t i = 0; i < textures_.size(); ++i) if (textures_[i] < 0) {
             currentOperation = "render.create_texture"; renderState = "creating_textures";
@@ -445,29 +456,30 @@ class Plugin final : public source::Listener {
             fontHeight_ = textHeight;
         }
         int alpha = static_cast<int>(255 * std::clamp((1800.0f - static_cast<float>(now - feedback_.last)) / 500.0f, 0.0f, 1.0f));
-        int center = width / 2, y = static_cast<int>(height * 0.62f), spacing = static_cast<int>(66 * scale);
-        int first = static_cast<int>(feedback_.kills.size()) - feedback_.visible;
+        int center = width / 2, y = static_cast<int>(height * 0.62f);
+        auto frame = animation_.Update(feedback_, acceptedKills, now);
         currentOperation = "render.draw_icons"; renderState = "drawing";
-        for (int i = first; i < static_cast<int>(feedback_.kills.size()); ++i) {
-            const auto& kill = feedback_.kills[i];
-            float age = static_cast<float>(now - kill.time) / 1000;
-            float pop = 1 + 0.25f * std::exp(-age * 10) * std::sin(age * 22);
-            int box = static_cast<int>(54 * scale * pop);
-            size_t type = kill.headshot ? 1 : 0;
+        for (int i = frame.count - 1; i >= 0; --i) {
+            const auto& pose = frame.skulls[i];
+            if (pose.ringAlpha > 0) {
+                int radius = static_cast<int>(pose.ringSize * scale / 2);
+                int ringX = center + static_cast<int>(pose.ringX * scale);
+                source::Call<void>(surface_, 11, 255, pose.headshot ? 196 : 255, pose.headshot ? 72 : 255, static_cast<int>(alpha * pose.ringAlpha));
+                source::Call<void>(surface_, 29, textures_[2]);
+                source::Call<void>(surface_, 31, ringX - radius, y - radius, ringX + radius, y + radius);
+            }
+            int box = static_cast<int>(27 * scale * pose.scale);
+            size_t type = pose.headshot ? 1 : 0;
             int h = box, w = static_cast<int>(box * static_cast<float>(images_[type].width) / images_[type].height);
-            int x = center + (i - first) * spacing - (feedback_.visible - 1) * spacing / 2;
-            source::Call<void>(surface_, 11, 255, 255, 255, alpha);
+            int x = center + static_cast<int>(pose.x * scale), iconY = y + static_cast<int>(pose.y * scale);
+            source::Call<void>(surface_, 11, 255, 255, 255, static_cast<int>(alpha * pose.alpha));
             source::Call<void>(surface_, 29, textures_[type]);
-            source::Call<void>(surface_, 31, x - w / 2, y - h / 2, x + w / 2, y + h / 2);
+            source::Call<void>(surface_, 31, x - w / 2, iconY - h / 2, x + w / 2, iconY + h / 2);
         }
         const auto& latest = feedback_.kills.back();
         wchar_t caption[128]{};
         swprintf_s(caption, L"%s · %s", latest.headshot ? L"爆头击杀" : L"击杀", ember::Label(latest.kind));
-        DrawText(caption, center, y + static_cast<int>(40 * scale), alpha);
-        if (feedback_.chain > 1) {
-            swprintf_s(caption, L"%d 连杀", feedback_.chain);
-            DrawText(caption, center, y + static_cast<int>(68 * scale), alpha);
-        }
+        DrawText(caption, center, y + static_cast<int>(26 * scale), alpha);
         ++hudDraws;
         renderState = "drawn";
         if (hudDraws == 1) {
@@ -500,6 +512,7 @@ class Plugin final : public source::Listener {
         if (!ReadImage(moduleDirectory / L"assets/skull.png", images_[0]) || !ReadImage(moduleDirectory / L"assets/headshot.png", images_[1])) {
             failure = "image_decode_failed"; return false;
         }
+        images_[2] = RingImage();
         feedback_.all = scope == 0;
         phase = "audio"; Report(true);
         Log("Feedback images ready; initializing audio.");

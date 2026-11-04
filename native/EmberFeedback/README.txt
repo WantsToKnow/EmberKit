@@ -141,6 +141,30 @@ game texture 1. No success claim relies on Surface031's validity/delete stubs.
 The first completed HUD draw now forces a status receipt and logs
 HUD_FIRST_DRAW_COMPLETE. This revision reports debugVersion=fix-20261104-2.
 
+The user confirmed that version works in-game. The previous presentation
+revision, hud-20261104-1, halves the skull size (54px to 27px at 1080p).
+Chains of 1-3 kills show that many skulls. At 4+, a single latest-kill skull
+and x4/x5/... replace the row; the whole icon/counter pair stays centered.
+The duplicate lower combo caption is hidden in this compact mode.
+
+The current anim-20261104-1 revision removes multiplier/combo numbers. The
+skull drops from above at about double size, shrinks on impact, emits an
+expanding ring, then slides left into a three-skull row. Older icons retain
+their current positions and smoothly move right; displaced icons fade out.
+Settled height remains 27px at 1080p. Existing headshot assets, captions and
+audio are retained. A new chain clears old animation state even when the
+reset and next kill happen between paint callbacks.
+
+feedback_animation.h contains the time-based motion and bounded display
+state. acceptedKills supplies unique serials even for multiple common deaths
+in the same tick. Native checks cover impact timing, ring expansion, smooth
+insertion, simultaneous kills, queue order and reset; they export actual poses
+and the generated ring for an offline preview. render-feedback-preview.ps1
+renders these poses and invokes an existing ffmpeg executable to encode MP4.
+The ring is generated locally as RGBA and uses a third owned texture through
+the already verified Surface031 create/upload/draw/delete methods. No new
+game interface slots are used for the animation.
+
 To adapt a new game build, review the interfaces, update hashes in both
 source_abi.h and FireAxe.Core/KillFeedback.cs, run native and managed checks,
 then perform an explicit live game test. A checksum match alone does not

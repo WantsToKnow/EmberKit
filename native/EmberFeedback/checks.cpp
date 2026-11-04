@@ -13,11 +13,11 @@ struct TestSurface {
     const unsigned char* rgba{};
     int creations{}, deletions{};
     bool gameTextureDeleted{};
-    std::array<bool, 2> live{};
+    std::array<bool, 3> live{};
 };
 int __fastcall CreateTexture(void* self, void*, bool procedural) {
     auto surface = static_cast<TestSurface*>(self);
-    assert(procedural && surface->creations < 2);
+    assert(procedural && surface->creations < 3);
     int index = surface->creations++;
     surface->live[index] = true;
     return 200 + index;
@@ -25,7 +25,7 @@ int __fastcall CreateTexture(void* self, void*, bool procedural) {
 bool MockTextureValid(void* self, int texture) {
     auto surface = static_cast<TestSurface*>(self);
     if (texture == 1) return !surface->gameTextureDeleted;
-    return texture >= 200 && texture < 202 && surface->live[texture - 200];
+    return texture >= 200 && texture < 203 && surface->live[texture - 200];
 }
 bool __fastcall DeleteTexture(void* self, void*, int texture) {
     auto surface = static_cast<TestSurface*>(self);
@@ -53,6 +53,73 @@ source::ClientClass* __fastcall WrongClientSlot(void*, void*) {
 source::ClientClass* __fastcall WrongNetworkSlot(void*, void*) {
     assert(false && "Pinned IClientNetworkable slot 2 does not return a ClientClass");
     return nullptr;
+}
+
+void CheckSkullAnimation(const std::filesystem::path& fixtures) {
+    using namespace ember;
+    Feedback feedback; feedback.all = true;
+    Input kill{ 1, 1, 2, 0, Kind::common, false };
+    SkullAnimation animation;
+    assert(feedback.Accept(kill, 1000));
+    auto entering = animation.Update(feedback, 1, 1040);
+    assert(entering.count == 1 && entering.skulls[0].scale > 1.9f && entering.skulls[0].y < -25 && entering.skulls[0].ringAlpha == 0);
+    auto impact = animation.Update(feedback, 1, 1180);
+    assert(std::abs(impact.skulls[0].y) < 0.01f && impact.skulls[0].ringAlpha > 0.7f);
+    auto expanding = animation.Update(feedback, 1, 1300);
+    assert(expanding.skulls[0].ringSize > impact.skulls[0].ringSize && expanding.skulls[0].ringAlpha < impact.skulls[0].ringAlpha);
+    for (int t = 1310; t <= 1700; t += 10) animation.Update(feedback, 1, t);
+    auto settled = animation.Update(feedback, 1, 1700);
+    assert(std::abs(settled.skulls[0].scale - 1) < 0.001f && std::abs(settled.skulls[0].x) < 0.1f);
+    assert(feedback.Accept(kill, 1700));
+    auto inserted = animation.Update(feedback, 2, 1700);
+    assert(inserted.count == 2 && inserted.skulls[0].x < inserted.skulls[1].x);
+    assert(std::abs(inserted.skulls[1].x - settled.skulls[0].x) < 0.001f); // No jump on insertion.
+    for (int t = 1710; t <= 2400; t += 10) animation.Update(feedback, 2, t);
+    auto row = animation.Update(feedback, 2, 2400);
+    assert(std::abs(row.skulls[0].x + 18) < 0.1f && std::abs(row.skulls[1].x - 18) < 0.1f);
+    for (int i = 0; i < 4; ++i) assert(feedback.Accept(kill, 2400)); // Same-tick common deaths have separate serials.
+    auto burst = animation.Update(feedback, 6, 2400);
+    assert(burst.count >= 3 && burst.count <= 6);
+    for (int t = 2410; t <= 3200; t += 10) {
+        burst = animation.Update(feedback, 6, t);
+        for (int i = 0; i < burst.count; ++i) {
+            const auto& p = burst.skulls[i];
+            assert(std::isfinite(p.x) && std::isfinite(p.y) && p.scale > 0 && p.alpha >= 0 && p.alpha <= 1);
+        }
+    }
+    assert(burst.count == 3 && burst.skulls[0].x < burst.skulls[1].x && burst.skulls[1].x < burst.skulls[2].x);
+    feedback.Reset();
+    assert(feedback.Accept(kill, 3300));
+    auto restarted = animation.Update(feedback, 7, 3300);
+    assert(restarted.count == 1 && restarted.skulls[0].scale > 2); // No old-round exit ghosts.
+    feedback.Reset();
+    assert(animation.Update(feedback, 7, 3400).count == 0);
+
+    // Export the actual animation's poses for an offline visual preview.
+    std::ofstream preview(fixtures / L"animation-preview.json");
+    preview << "{\"fps\":60,\"frames\":[";
+    constexpr int arrivals[] = { 0, 700, 1150, 1520, 2500, 2520, 2540 };
+    Feedback demo; demo.all = true; SkullAnimation motion; int next = 0;
+    for (int frame = 0; frame < 300; ++frame) {
+        int ms = frame * 1000 / 60;
+        while (next < static_cast<int>(std::size(arrivals)) && arrivals[next] <= ms) {
+            kill.headshot = next % 3 == 1;
+            assert(demo.Accept(kill, 1000 + arrivals[next])); ++next;
+        }
+        auto scene = motion.Update(demo, next, 1000 + ms);
+        float opacity = next ? Unit((1800.0f - static_cast<float>(1000 + ms - demo.last)) / 500) : 0;
+        if (frame) preview << ',';
+        preview << "{\"alpha\":" << opacity << ",\"skulls\":[";
+        for (int i = 0; i < scene.count; ++i) {
+            if (i) preview << ',';
+            const auto& p = scene.skulls[i];
+            preview << "{\"x\":" << p.x << ",\"y\":" << p.y << ",\"scale\":" << p.scale << ",\"alpha\":" << p.alpha
+                << ",\"ringX\":" << p.ringX << ",\"ringSize\":" << p.ringSize << ",\"ringAlpha\":" << p.ringAlpha << ",\"headshot\":" << (p.headshot ? "true" : "false") << '}';
+        }
+        preview << "]}";
+    }
+    preview << "]}\n";
+    assert(preview.good());
 }
 
 int main(int argc, char** argv) {
@@ -159,10 +226,16 @@ int main(int argc, char** argv) {
     assert(surface.texture == normalTexture && surface.rgba == normal.pixels.data() && surface.width == normal.width && surface.height == normal.height);
     source::UploadTexture(&surface, headTexture, headshot.pixels.data(), headshot.width, headshot.height);
     assert(surface.texture == headTexture && surface.rgba == headshot.pixels.data());
+    auto ring = RingImage();
+    assert(ring.width == 128 && ring.height == 128 && ring.pixels[(64 * 128 + 64) * 4 + 3] == 0 && ring.pixels[(64 * 128 + 120) * 4 + 3] > 200);
+    int ringTexture = source::CreateTexture(&surface);
+    assert(ringTexture == 202 && surface.creations == 3 && surface.deletions == 0 && !surface.gameTextureDeleted);
+    source::UploadTexture(&surface, ringTexture, ring.pixels.data(), ring.width, ring.height);
     assert(MockTextureValid(&surface, normalTexture) && MockTextureValid(&surface, headTexture) && MockTextureValid(&surface, 1));
     source::DeleteTexture(&surface, normalTexture);
     source::DeleteTexture(&surface, headTexture);
-    assert(surface.deletions == 2 && !MockTextureValid(&surface, normalTexture) && !MockTextureValid(&surface, headTexture)
+    source::DeleteTexture(&surface, ringTexture);
+    assert(surface.deletions == 3 && !MockTextureValid(&surface, normalTexture) && !MockTextureValid(&surface, headTexture)
         && MockTextureValid(&surface, 1) && !surface.gameTextureDeleted);
     Wave killSound, headSound;
     assert(ReadWave(assets / L"kill.wav", killSound) && ReadWave(assets / L"headshot.wav", headSound));
@@ -170,6 +243,9 @@ int main(int argc, char** argv) {
     assert(!ReadWave(assets / L"skull.png", killSound));
     assert(EmberFeedback_Start(nullptr) == 2 && EmberFeedback_Start(const_cast<wchar_t*>(L"bad")) == 2);
     std::filesystem::path fixtures = std::filesystem::absolute(argv[2]);
+    CheckSkullAnimation(fixtures);
+    std::ofstream ringPreview(fixtures / L"animation-ring.rgba", std::ios::binary);
+    ringPreview.write(reinterpret_cast<const char*>(ring.pixels.data()), ring.pixels.size()); ringPreview.close();
     // Exercise the actual diagnostic writers without loading Source or raising
     // a real exception. The callback filter must always continue exception search.
     stateDirectory = fixtures / L"diagnostic-check";
@@ -246,5 +322,5 @@ int main(int argc, char** argv) {
     for (int attempt = 0; attempt < 20 && !stop; ++attempt) { stop = OpenEventW(EVENT_MODIFY_STATE, FALSE, stopName.c_str()); if (!stop) Sleep(25); }
     assert(stop); SetEvent(stop); CloseHandle(stop);
     assert(WaitForSingleObject(host, 5000) == WAIT_OBJECT_0);
-    std::cout << "PASS: Surface031 create/upload/delete lifecycle preserves the game's texture 1; native ownership/scopes/combo and 40-event replay (24 accepted); named infected and NetworkClass slot 1; diagnostic counters/exception context; VClient016 ABI; PNG/WAV; isolated DLL load/start and duplicate rejection. No game or Steam loaded.\n";
+    std::cout << "PASS: skull drop/impact/ring/left insertion, continuous shifts and same-tick bursts; three owned textures preserve game texture 1; ownership/scopes/40-event replay; native ABI, PNG/WAV, diagnostics and isolated loader. Offline preview poses exported; no game or Steam loaded.\n";
 }

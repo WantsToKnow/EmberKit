@@ -20,6 +20,7 @@
 7. **默认忽略工坊 Hash。** “链接下载”和“导入 TXT”默认勾选“忽略工坊 Hash 校验”，复制链接后打开的下载页也相同；可取消勾选来开启工坊 SHA-1 比对。仍检查大小和 VPK 格式，仍计算存储用的 SHA-256，结果中会注明。Hash 不一致的具体原因需要单独核对，不能据此判断作品或作者有问题。
 8. **主菜单应用 Mod（实验）。** 主窗口右上角提供醒目的绿色“从助手启动游戏”按钮，一次点击直接启动并建立所需连接。之后点击“返回主菜单并应用 Mod”，自动断开地图或服务器、卸载旧附加内容、应用入口，再请求重新挂载并核对游戏的 VPK 加载列表。尚未安装的下载条目会跳过，不阻挡其他 Mod 应用。无需手动输入控制台命令；个别资源仍有旧缓存时需要完整重启。
 9. **软件配置随身保存。** 设置、日志、游戏连接配置和崩溃临时文件统一保存在 `EmberKit.exe` 同目录的 `data` 内，不再使用“文档/FireAxe”、AppData 或启动时的工作目录。Mod 库的识别记录、下载历史和备份继续随 `modebackup` 保存。
+10. **可选的击杀反馈动画。** 在启动按钮旁启用，选择“所有僵尸”或“仅特感”。本人击杀后骷髅放大落下、缩小并扩散圆环，再滑入最近3个图标的队列，配合爆头图片和音效。沿用普通 Steam 启动，不添加 `-insecure`。参考图片、音效单列来源，不属于项目代码的 Apache-2.0 许可范围。
 
 下载只在明确点击下载、导入等入口时触发。临时文件放在 `firefox_temp`，校验后归档；启动、检查和重新识别不会自动重新下载工坊作品。游戏入口的核验与画面实际效果分开确认，最终仍需进入地图测试。
 
@@ -31,7 +32,7 @@
 
 ## 从源码构建
 
-安装 .NET 10 SDK。这个版本新增的存储与入口流程以 Windows x64 为目标。
+安装 .NET 10 SDK，以及用于反馈模块的 Visual Studio 2022 C++ Build Tools（v143、Win32 和 Windows SDK）。助手以 Windows x64 为目标，游戏模块与加载器使用 x86。
 
 ```powershell
 dotnet restore FireAxe.Checks/FireAxe.Checks.csproj
@@ -39,7 +40,7 @@ dotnet run --project FireAxe.Checks/FireAxe.Checks.csproj -c Release
 powershell -ExecutionPolicy Bypass -File scripts/package-windows.ps1
 ```
 
-普通自检命令只创建临时 VPK、模拟游戏目录、模拟控制台和无桌面的界面预览，不操作真实游戏目录。当前共有 **194 项检查**；游戏内效果仍需另外实测。
+普通自检命令只创建临时 VPK、模拟游戏目录、模拟控制台和无桌面的界面预览，不操作真实游戏目录。当前共有 **223 项检查**；`scripts/build-feedback.ps1 -RunChecks` 另覆盖原生动画、纹理生命周期、归属和隔离进程装载，游戏内效果仍需另外实测。
 
 打包脚本输出 `publish/EmberKit-Windows-x64-Portable` 文件夹和同名 ZIP，自带运行库，完整解压后运行其中的 `EmberKit.exe`。默认只打包空白 `data`；可用 `-WorkshopListPath` 附带 TXT 清单，用 `-OutputDirectory` 指定新的输出目录。为避免夹带个人配置，脚本不会复用已存在的输出目录或 ZIP。内部程序集与命名空间保留 FireAxe 名称以兼容原项目。
 

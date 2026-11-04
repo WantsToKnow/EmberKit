@@ -19,12 +19,13 @@ Thank you to **ktxiaok**, the original FireAxe author, for developing and open-s
 - **A hash option:** link downloads, clipboard links and TXT imports skip the Workshop SHA-1 comparison by default. Clear the option to enable strict comparison; file-size and VPK-format checks remain, SHA-256 storage identity is still computed, and the result records the choice.
 - **Experimental main-menu reload:** the main window has a prominent green button to launch through the assistant in one click. Then use one button to disconnect to the menu, unload addons, apply entries, remount and verify the game's VPK load order. Uninstalled downloads are skipped without blocking other mods. No manual console commands are needed. Some cached resources may still require a full restart; visual effects need in-game testing.
 - **Portable application state:** settings, logs, game connection credentials and crash-report temporary files stay in `data` beside `EmberKit.exe`, independently of the working directory. The manager no longer uses Documents or AppData for these files. Mod-library metadata, download history and backups stay with `modebackup`.
+- **Optional animated kill feedback:** enable it beside the launch button and choose all zombies or special infected only. A local kill drops and shrinks a skull, emits a ring and slides into a three-icon queue, with headshot art and audio. Ordinary Steam launch arguments are retained; no `-insecure` option is added. Reference images and sounds have separate provenance and are not covered by the code's Apache-2.0 license.
 
 Downloads are staged in `firefox_temp`, then validated and archived. Opening the manager, checking, or rescanning does not automatically download Workshop items. The detailed current workflow is in the [Chinese guide](docs/usage.zh-Hans.md).
 
 ## Build and check
 
-Requires the .NET 10 SDK. Windows x64 is the target of this fork's added storage workflow.
+Requires the .NET 10 SDK and Visual Studio 2022 C++ Build Tools (v143, Win32 and Windows SDK) for the feedback module. Windows x64 is the manager's target; the game module and loader are x86.
 
 ```powershell
 dotnet restore FireAxe.Checks/FireAxe.Checks.csproj
@@ -32,7 +33,7 @@ dotnet run --project FireAxe.Checks/FireAxe.Checks.csproj -c Release
 powershell -ExecutionPolicy Bypass -File scripts/package-windows.ps1
 ```
 
-The checks create their own temporary VPKs, simulated game directories, a simulated console and headless UI previews; the normal check command does not operate on an installed game. The current suite has **194 checks**. Game effects require a separate in-game test.
+The checks create their own temporary VPKs, simulated game directories, a simulated console and headless UI previews; the normal check command does not operate on an installed game. The current suite has **223 checks**, plus native animation, texture-lifecycle, attribution and isolated-loader checks via `scripts/build-feedback.ps1 -RunChecks`. Game effects require a separate in-game test.
 
 The package script produces a self-contained `publish/EmberKit-Windows-x64-Portable` folder and matching ZIP; fully extract the archive and run `EmberKit.exe`. Packages start with an empty `data` directory. Optional `-WorkshopListPath` includes a TXT list, and `-OutputDirectory` selects a fresh output folder. Existing output folders and ZIPs are rejected to avoid packaging personal state. Internal assemblies and namespaces retain the upstream FireAxe names for compatibility.
 
