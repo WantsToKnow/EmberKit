@@ -17,6 +17,7 @@
 #include "source_abi.h"
 #include "feedback_logic.h"
 #include "feedback_animation.h"
+#include "pistol_input.h"
 
 namespace {
 HMODULE ownModule;
@@ -26,8 +27,11 @@ std::string phase = "starting", failure;
 unsigned long long paintFrames{}, deathEvents{}, acceptedKills{}, hudDraws{};
 int registeredEvents{}, scope = 1;
 bool audioReady{};
+bool feedbackEnabled = true, autoPistolEnabled{};
+const char* pistolState = "disabled";
+ember::PistolClicker pistolInput;
 ULONGLONG nextReport{};
-constexpr const char* debugVersion = "anim-20261104-1";
+constexpr const char* debugVersion = "autopistol-20261104-1";
 // Keep checkpoints observable to the hardware-exception filter in /O2 builds.
 thread_local const char* volatile currentOperation{};
 struct Operation {
@@ -91,6 +95,12 @@ void Report(bool force = false) {
         << ",\"paintFrames\":" << paintFrames << ",\"deathEvents\":" << deathEvents
         << ",\"acceptedKills\":" << acceptedKills << ",\"hudDraws\":" << hudDraws
         << ",\"registeredEvents\":" << registeredEvents << ",\"audio\":" << (audioReady ? "true" : "false")
+        << ",\"killFeedbackEnabled\":" << (feedbackEnabled ? "true" : "false")
+        << ",\"autoPistolEnabled\":" << (autoPistolEnabled ? "true" : "false")
+        << ",\"autoPistolReady\":" << (pistolInput.Ready() ? "true" : "false")
+        << ",\"autoPistolActive\":" << (pistolInput.Active() ? "true" : "false")
+        << ",\"autoPistolClicks\":" << pistolInput.Clicks() << ",\"autoPistolError\":" << pistolInput.Error()
+        << ",\"autoPistolState\":\"" << pistolState << "\""
         << ",\"debugVersion\":\"" << debugVersion << "\",\"lastDecision\":\"" << lastDecision
         << "\",\"renderState\":\"" << renderState << "\",\"screenWidth\":" << screenWidth << ",\"screenHeight\":" << screenHeight
         << ",\"teamOffset\":" << debugTeamOffset << ",\"zombieOffset\":" << debugZombieOffset
@@ -320,6 +330,7 @@ class Plugin final : public source::Listener {
     void** paintSlot_{};
     Paint originalPaint_{};
     int teamOffset_ = -1, zombieOffset_ = -1;
+    int activeWeaponOffset_ = -1, lifeOffset_ = -1, clipOffset_ = -1;
     std::array<Image, 3> images_;
     std::array<int, 3> textures_{ -1, -1, -1 };
     unsigned long font_{};
@@ -337,6 +348,33 @@ class Plugin final : public source::Listener {
     void* Entity(int index) {
         Operation context("entity.get");
         return index > 0 && index <= 4096 ? source::Call<void*>(entities_, 3, index) : nullptr;
+    }
+    void UpdatePistol() {
+        if (!autoPistolEnabled) return;
+        Operation context("pistol.context");
+        bool playing = active_ && source::Call<bool>(engine_, 26) && source::Call<bool>(engine_, 27)
+            && !source::Call<bool>(engine_, 11) && !source::Call<bool>(engineVgui_, 2);
+        pistolState = "not_playing";
+        bool pistol = false;
+        if (playing) {
+            int local = source::Call<int>(engine_, 12);
+            auto player = static_cast<unsigned char*>(Entity(local));
+            playing = player && Team(local) == 2 && player[lifeOffset_] == 0;
+            pistolState = "not_living_survivor";
+            if (playing) {
+                currentOperation = "pistol.active_weapon";
+                auto handle = *reinterpret_cast<unsigned int*>(player + activeWeaponOffset_);
+                int index = static_cast<int>(handle & 0xfff);
+                auto weapon = static_cast<unsigned char*>(Entity(index));
+                auto networkable = weapon ? source::Call<void*>(entities_, 0, index) : nullptr;
+                auto klass = networkable ? source::NetworkClass(networkable) : nullptr;
+                bool isPistol = klass && klass->name && !std::strcmp(klass->name, "CPistol");
+                pistolState = isPistol ? "empty" : "not_pistol";
+                pistol = isPistol && *reinterpret_cast<int*>(weapon + clipOffset_) > 0;
+                if (pistol) pistolState = "ready";
+            }
+        }
+        pistolInput.SetContext(playing, pistol);
     }
     int Team(int index, bool* exists = nullptr) {
         Operation context("entity.team_property");
@@ -491,21 +529,37 @@ class Plugin final : public source::Listener {
         Operation context("initialize.com");
         // WIC and XAudio2 are initialized on this same owner thread. Retain our
         // COM reference for the module's game-process lifetime.
-        HRESULT com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+        HRESULT com = feedbackEnabled ? CoInitializeEx(nullptr, COINIT_MULTITHREADED) : S_OK;
         if (FAILED(com) && com != RPC_E_CHANGED_MODE) { failure = "com_initialization_failed"; return false; }
-        ownsCom_ = SUCCEEDED(com);
+        ownsCom_ = feedbackEnabled && SUCCEEDED(com);
         phase = "receive_tables"; Report(true);
         Log("Initializing client receive tables.");
         currentOperation = "initialize.receive_tables";
         int classes = 0;
-        for (auto klass = source::ClientClasses(client_); klass && ++classes < 2048; klass = klass->next)
+        for (auto klass = source::ClientClasses(client_); klass && ++classes < 2048; klass = klass->next) {
             if (klass->name && !std::strcmp(klass->name, "CTerrorPlayer")) {
-                teamOffset_ = Property(klass->table, "m_iTeamNum"); zombieOffset_ = Property(klass->table, "m_zombieClass"); break;
+                teamOffset_ = Property(klass->table, "m_iTeamNum"); zombieOffset_ = Property(klass->table, "m_zombieClass");
+                if (autoPistolEnabled) {
+                    activeWeaponOffset_ = Property(klass->table, "m_hActiveWeapon");
+                    lifeOffset_ = Property(klass->table, "m_lifeState");
+                }
             }
+            if (autoPistolEnabled && klass->name && !std::strcmp(klass->name, "CPistol")) clipOffset_ = Property(klass->table, "m_iClip1");
+            if (teamOffset_ >= 0 && (!autoPistolEnabled || clipOffset_ >= 0)) break;
+        }
         debugTeamOffset = teamOffset_; debugZombieOffset = zombieOffset_;
         char offsets[192]{}; std::snprintf(offsets, sizeof(offsets), "RECEIVE_TABLES classes=%d team_offset=%d zombie_offset=%d", classes, teamOffset_, zombieOffset_);
         Log(offsets, false);
         if (teamOffset_ < 0 || teamOffset_ > 65536 || zombieOffset_ < 0 || zombieOffset_ > 65536) { failure = "receive_properties_unavailable"; return false; }
+        if (autoPistolEnabled) {
+            char pistol[192]{}; std::snprintf(pistol, sizeof(pistol), "PISTOL_PROPERTIES active_weapon=%d life=%d clip=%d", activeWeaponOffset_, lifeOffset_, clipOffset_);
+            Log(pistol, false);
+            if (activeWeaponOffset_ < 0 || activeWeaponOffset_ > 65536 || lifeOffset_ < 0 || lifeOffset_ > 65536 || clipOffset_ < 0 || clipOffset_ > 65536) {
+                failure = "pistol_receive_properties_unavailable"; return false;
+            }
+            if (!pistolInput.Start(ownModule)) { failure = "pistol_input_thread_failed"; return false; }
+        }
+        if (feedbackEnabled) {
         phase = "images"; Report(true);
         Log("Receive tables ready; decoding feedback images.");
         currentOperation = "initialize.images";
@@ -519,10 +573,14 @@ class Plugin final : public source::Listener {
         currentOperation = "initialize.audio";
         audioReady = audio_.Init();
         if (!audioReady) Log("Audio initialization failed; visual feedback remains available.");
+        }
         active_ = true;
-        phase = "events"; Report(true);
-        Log("Registering client event listeners.");
-        Subscribe();
+        phase = "initialized";
+        if (feedbackEnabled) {
+            phase = "events"; Report(true);
+            Log("Registering client event listeners.");
+            Subscribe();
+        }
         Log("Client owner-thread initialization complete. No server-plugin registration or launch security flags used.");
         Report(true);
         return true;
@@ -550,6 +608,8 @@ public:
         GetPrivateProfileStringW(L"feedback", L"session", L"", expected, static_cast<DWORD>(std::size(expected)), config.c_str());
         if (GetPrivateProfileIntW(L"feedback", L"enabled", 0, config.c_str()) != 1 || std::wcscmp(expected, session)) { failure = "launch_session_mismatch"; phase = "error"; Report(true); return false; }
         scope = GetPrivateProfileIntW(L"feedback", L"scope", 1, config.c_str()) == 0 ? 0 : 1;
+        feedbackEnabled = GetPrivateProfileIntW(L"feedback", L"kill_feedback", 1, config.c_str()) == 1;
+        autoPistolEnabled = GetPrivateProfileIntW(L"feedback", L"auto_pistol", 0, config.c_str()) == 1;
         Log("Our client DLL loaded; session and game binaries are being verified.");
         currentOperation = "start.binary_hashes";
         if (!SupportedModules()) { failure = "unsupported_game_binaries"; phase = "error"; Report(true); return false; }
@@ -576,6 +636,7 @@ public:
     }
     void Stop() {
         active_ = false;
+        pistolInput.Stop();
         if (events_) source::Call<void>(events_, 5, static_cast<source::Listener*>(this));
         if (paintSlot_) {
             DWORD protection{};
@@ -592,7 +653,7 @@ public:
     }
     void HandleGameEvent(source::GameEvent* event) {
         Operation context("event.is_in_game");
-        if (!active_ || !event || !source::Call<bool>(engine_, 26)) return;
+        if (!active_ || !feedbackEnabled || !event || !source::Call<bool>(engine_, 26)) return;
         currentOperation = "event.get_name";
         const char* name = event->GetName();
         bool player = !std::strcmp(name, "player_death"), common = !std::strcmp(name, "infected_death"), witch = !std::strcmp(name, "witch_killed");
@@ -664,7 +725,8 @@ public:
             ++paintFrames;
             try {
                 if (pending_.exchange(false, std::memory_order_acquire) && !InitializeOnOwnerThread()) { phase = "error"; Report(true); }
-                Render();
+                UpdatePistol();
+                if (feedbackEnabled) Render();
                 currentOperation = "status.write";
                 Report();
                 Heartbeat();

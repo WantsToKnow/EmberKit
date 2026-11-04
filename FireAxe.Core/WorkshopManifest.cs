@@ -178,10 +178,29 @@ public static class WorkshopManifest
     public static async Task<WorkshopDownloadPlan> ResolveDownloadsAsync(IEnumerable<WorkshopListEntry> entries, HttpClient client, CancellationToken cancellationToken)
     {
         var requested = entries.DistinctBy(entry => entry.Id).ToArray();
-        var details = await PublishedFileUtils.GetPublishedFileDetailsBatchAsync(requested.Select(entry => entry.Id), client, cancellationToken).ConfigureAwait(false);
+        var details = (await PublishedFileUtils.GetPublishedFileDetailsBatchAsync(requested.Select(entry => entry.Id), client, cancellationToken).ConfigureAwait(false)).ToDictionary();
+        var explicitEntries = requested.ToDictionary(entry => entry.Id);
+        var expanded = new List<WorkshopListEntry>();
+        foreach (var entry in requested)
+        {
+            var result = details[entry.Id];
+            // Steam's published-file response has no collection flag: collections usually point at a preview image.
+            var children = result.IsSucceeded && PublishedFileUtils.GetDownloadUri(result.Content) is null
+                ? await WorkshopCollectionUtils.GetWorkshopCollectionContentAsync(entry.Id, true, client, cancellationToken).ConfigureAwait(false)
+                : null;
+            if (children is null) expanded.Add(entry);
+            else expanded.AddRange(children.Distinct().Select(id => explicitEntries.GetValueOrDefault(id)
+                ?? new WorkshopListEntry(id, "工坊 " + id, entry.Enabled, entry.Priority)));
+        }
+        var expandedEntries = expanded.DistinctBy(entry => entry.Id).ToArray();
+        if (expandedEntries.Length > MaxItems) throw new FormatException($"合集展开后超过 {MaxItems} 个作品，请分批导入。");
+        var missing = expandedEntries.Select(entry => entry.Id).Where(id => !details.ContainsKey(id)).ToArray();
+        if (missing.Length > 0)
+            foreach (var pair in await PublishedFileUtils.GetPublishedFileDetailsBatchAsync(missing, client, cancellationToken).ConfigureAwait(false))
+                details[pair.Key] = pair.Value;
         var items = new List<(WorkshopListEntry, PublishedFileDetails)>();
         var skipped = new List<WorkshopListSkip>();
-        foreach (var entry in requested)
+        foreach (var entry in expandedEntries)
         {
             var result = details[entry.Id];
             if (result.IsSucceeded && PublishedFileUtils.GetDownloadUri(result.Content) is not null) items.Add((entry, result.Content));

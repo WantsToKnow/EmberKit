@@ -72,16 +72,16 @@ public sealed class WorkshopTransferViewModel : ViewModelBase, IDisposable
         {
             var console = CreateGameConsole();
             if (ModStorage.IsGameRunning(console.GameDirectory)) throw new InvalidOperationException("游戏已经运行。请先检查连接；若不是通过助手启动，需要退出游戏后再用此按钮启动一次。");
-            var feedback = new KillFeedbackSettings { Enabled = KillFeedback.Enabled, Scope = KillFeedback.Scope };
+            var feedback = new KillFeedbackSettings { Enabled = KillFeedback.Enabled, Scope = KillFeedback.Scope, AutoPistolEnabled = KillFeedback.AutoPistolEnabled };
             var result = await _root.Storage.RefreshAsync(token);
             if (result.Pending || result.Warnings.Length > 0) throw new IOException("本地整理尚未完成：" + _root.Storage.Status);
             token.ThrowIfCancellationRequested();
             using var process = Process.Start(console.PrepareLaunch(feedback));
-            GameConnectionStatus = feedback.Enabled
+            GameConnectionStatus = feedback.RequiresClientModule
                 ? "已按普通方式交给 Steam 启动；正在等待本次游戏连接并加载自产客户端反馈模块…"
                 : "已交给 Steam 启动，请等游戏主菜单出现，再检查连接或应用 Mod。";
             Status = GameConnectionStatus;
-            if (feedback.Enabled)
+            if (feedback.RequiresClientModule)
             {
                 try { GameConnectionStatus = await console.AttachFeedbackAsync(token); }
                 catch (OperationCanceledException) { GameConnectionStatus = "已取消等待反馈初始化；游戏保持运行，已发起的模块加载可能仍会完成。"; }
@@ -94,7 +94,7 @@ public sealed class WorkshopTransferViewModel : ViewModelBase, IDisposable
             GameConnectionStatus = "正在连接游戏…";
             await using var connection = await CreateGameConsole().ConnectAsync(token);
             var mounted = await connection.ReadMountedAddonsAsync(token);
-            var feedback = KillFeedback.Enabled ? " " + await connection.ReadKillFeedbackAsync(token) : "";
+            var feedback = KillFeedback.RequiresClientModule ? " " + await connection.ReadKillFeedbackAsync(token) : "";
             GameConnectionStatus = $"已连接游戏，并核对安装目录；当前挂载 {mounted.Count} 个 Mod。" + feedback + " 应用按钮会自动断开地图或服务器、返回主菜单。";
             Status = GameConnectionStatus;
         }), ready);
@@ -168,14 +168,14 @@ public sealed class WorkshopTransferViewModel : ViewModelBase, IDisposable
         var ignoreWorkshopHash = IgnoreWorkshopHash;
         var parsed = WorkshopManifest.Parse(text);
         if (parsed.Entries.Length == 0) throw new FormatException("没有有效的工坊链接或 ID。每行填写一个作品，可直接导入本程序导出的 TXT。");
-        Status = $"正在向 Steam 验证 {parsed.Entries.Length} 个作品…";
+        Status = $"正在向 Steam 验证 {parsed.Entries.Length} 个作品或合集，并展开合集内容…";
         var entries = preserveState ? parsed.Entries : parsed.Entries.Select(entry => entry with { Enabled = EnableDownloads }).ToArray();
         var plan = await WorkshopManifest.ResolveDownloadsAsync(entries, _root.HttpClient, token);
         token.ThrowIfCancellationRequested();
         var queued = WorkshopManifest.QueueDownloads(_root, plan, ignoreWorkshopHash);
         Report = FormatSkips(plan.Skipped);
         Status = $"新建下载 {queued.Added.Length} 个；重试 {queued.Retried} 个；已有 {queued.AlreadyPresent} 个；跳过 {plan.Skipped.Length} 个。临时文件位于 firefox_temp；完成后自动归档和应用启用状态。"
-            + (ignoreWorkshopHash ? " 本批下载忽略工坊 Hash，仍检查大小和 VPK 格式。" : "");
+            + (ignoreWorkshopHash ? " 本批下载忽略工坊 Hash，仍检查 VPK 格式；大小不符仅记录警告。" : "");
     }
 
     private async Task RunAsync(Func<CancellationToken, Task> action)

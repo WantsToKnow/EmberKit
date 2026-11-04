@@ -16,11 +16,11 @@
     <TabControl Grid.Row="1" SelectedIndex="{Binding SelectedTab}" IsEnabled="{Binding !IsBusy}">
       <TabItem Header="链接下载">
         <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10" Margin="0,12,0,0">
-          <TextBlock Text="每行一个工坊链接或数字 ID。下载临时放入 firefox_temp；校验后归档到 modebackup，按开关自动应用到游戏。" TextWrapping="Wrap"/>
+          <TextBlock Text="每行一个作品或合集的链接 / ID。合集会展开全部分包（含子合集），已有作品自动跳过；下载后归档到 modebackup。" TextWrapping="Wrap"/>
           <TextBox Grid.Row="1" Text="{Binding LinkText}" AcceptsReturn="True" TextWrapping="Wrap" VerticalAlignment="Stretch"
                    Watermark="https://steamcommunity.com/sharedfiles/filedetails/?id=…" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
           <StackPanel Grid.Row="2" Spacing="4">
-            <CheckBox Content="忽略工坊 Hash 校验（仍检查大小和 VPK 格式）" IsChecked="{Binding IgnoreWorkshopHash}"/>
+            <CheckBox Content="忽略工坊 Hash 校验（仍检查 VPK 格式）" IsChecked="{Binding IgnoreWorkshopHash}"/>
             <DockPanel>
               <Button DockPanel.Dock="Right" Content="加入下载队列" Command="{Binding DownloadCommand}"/>
               <CheckBox Content="下载完成后自动启用" IsChecked="{Binding EnableDownloads}"/>
@@ -33,7 +33,7 @@
           <TextBlock Text="打开别人分享的 TXT，或直接粘贴清单。会保留清单中的启用状态和优先级，下载工坊当前版本。" TextWrapping="Wrap"/>
           <TextBox Grid.Row="1" Text="{Binding ImportText}" AcceptsReturn="True" TextWrapping="NoWrap" VerticalAlignment="Stretch" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
           <StackPanel Grid.Row="2" Spacing="4">
-            <CheckBox Content="忽略工坊 Hash 校验（仍检查大小和 VPK 格式）" IsChecked="{Binding IgnoreWorkshopHash}"/>
+            <CheckBox Content="忽略工坊 Hash 校验（仍检查 VPK 格式）" IsChecked="{Binding IgnoreWorkshopHash}"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
               <Button Content="打开 TXT…" Command="{Binding LoadCommand}"/>
               <Button Content="导入并下载" Command="{Binding ImportCommand}"/>
@@ -117,6 +117,7 @@
             <TextBlock Text="1. 首次用下方按钮启动游戏，等到主菜单。此后本次游戏运行期间都可以反复应用。" TextWrapping="Wrap"/>
             <StackPanel Orientation="Horizontal" Spacing="12">
               <CheckBox Content="启用击杀反馈" IsChecked="{Binding KillFeedback.Enabled}"/>
+              <CheckBox Content="手枪自动连点（按住左键）" IsChecked="{Binding KillFeedback.AutoPistolEnabled}"/>
               <ComboBox SelectedIndex="{Binding KillFeedback.Scope}" IsEnabled="{Binding KillFeedback.Enabled}"
                         MinWidth="220" AutomationProperties.Name="击杀反馈触发范围">
                 <ComboBoxItem Content="所有僵尸"/>

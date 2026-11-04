@@ -51,6 +51,8 @@
             </Button>
             <CheckBox Name="killFeedbackCheckBox" Content="启用击杀反馈" IsChecked="{Binding KillFeedback.Enabled}"
                       ToolTip.Tip="按普通 Steam 方式启动，验证本次连接后加载自产客户端模块；不添加 -insecure。服务器兼容性仍需实测。"/>
+            <CheckBox Name="autoPistolCheckBox" Content="手枪自动连点（按住左键）" IsChecked="{Binding KillFeedback.AutoPistolEnabled}"
+                      ToolTip.Tip="仅装备手枪时生效，松开停止；切换其他武器恢复普通操作。勾选后通过助手重新启动游戏。"/>
             <ComboBox Name="killFeedbackScope" SelectedIndex="{Binding KillFeedback.Scope}" IsEnabled="{Binding KillFeedback.Enabled}"
                       HorizontalAlignment="Stretch" AutomationProperties.Name="击杀反馈触发范围">
               <ComboBoxItem Content="所有僵尸"/>

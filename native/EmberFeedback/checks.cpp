@@ -55,6 +55,36 @@ source::ClientClass* __fastcall WrongNetworkSlot(void*, void*) {
     return nullptr;
 }
 
+void CheckPistolPulse() {
+    using namespace ember;
+    PistolPulse pulse;
+    assert(pulse.Update(1000, true, true, true) == MouseAction::none && !pulse.Active());
+    pulse.Observe(false, true);
+    assert(pulse.Update(1010, true, true, true) == MouseAction::none && pulse.Active());
+    pulse.Observe(true, false); // An injected release must not cancel the physical hold.
+    assert(pulse.Update(1044, true, true, true) == MouseAction::none);
+    assert(pulse.Update(1045, true, true, true) == MouseAction::up);
+    assert(pulse.Update(1080, true, true, true) == MouseAction::down);
+    pulse.Observe(false, false);
+    assert(pulse.Update(1081, true, true, true) == MouseAction::up && !pulse.Active());
+    pulse.Observe(false, true);
+    assert(pulse.Update(2000, true, true, true) == MouseAction::none);
+    assert(pulse.Update(2035, true, true, true) == MouseAction::up);
+    assert(pulse.Update(2036, true, true, false) == MouseAction::down && !pulse.Active());
+    assert(pulse.Update(2100, true, true, false) == MouseAction::none); // Primary weapons keep an ordinary held click.
+    assert(pulse.Update(3000, true, true, true) == MouseAction::none);
+    assert(pulse.Update(3035, true, true, true) == MouseAction::up);
+    assert(pulse.Update(3036, false, true, true) == MouseAction::none && !pulse.Active());
+    assert(pulse.Update(3100, true, true, true) == MouseAction::none && !pulse.Active());
+    pulse.Observe(false, true);
+    assert(pulse.Update(3110, true, true, true) == MouseAction::none);
+    assert(pulse.Update(3180, true, true, true) == MouseAction::up);
+    assert(pulse.Update(3215, true, true, true) == MouseAction::down);
+    assert(pulse.Update(3216, true, false, true) == MouseAction::up && !pulse.Active());
+    assert(pulse.Update(3250, true, true, true) == MouseAction::none && !pulse.Active());
+    std::cout << "Pistol hold, injected-event isolation, release, weapon switching, focus and menu checks passed.\n";
+}
+
 void CheckSkullAnimation(const std::filesystem::path& fixtures) {
     using namespace ember;
     Feedback feedback; feedback.all = true;
@@ -244,6 +274,7 @@ int main(int argc, char** argv) {
     assert(EmberFeedback_Start(nullptr) == 2 && EmberFeedback_Start(const_cast<wchar_t*>(L"bad")) == 2);
     std::filesystem::path fixtures = std::filesystem::absolute(argv[2]);
     CheckSkullAnimation(fixtures);
+    CheckPistolPulse();
     std::ofstream ringPreview(fixtures / L"animation-ring.rgba", std::ios::binary);
     ringPreview.write(reinterpret_cast<const char*>(ring.pixels.data()), ring.pixels.size()); ringPreview.close();
     // Exercise the actual diagnostic writers without loading Source or raising

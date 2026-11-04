@@ -11,10 +11,16 @@ namespace FireAxe;
 public sealed class KillFeedbackSettings : ObservableObject
 {
     private bool _enabled;
+    private bool _autoPistolEnabled;
     private int _scope = 1;
 
     [JsonProperty]
     public bool Enabled { get => _enabled; set => NotifyAndSetIfChanged(ref _enabled, value); }
+
+    [JsonProperty]
+    public bool AutoPistolEnabled { get => _autoPistolEnabled; set => NotifyAndSetIfChanged(ref _autoPistolEnabled, value); }
+
+    public bool RequiresClientModule => Enabled || AutoPistolEnabled;
 
     // 0 = all infected; 1 = specials, including Tank and Witch.
     [JsonProperty]
@@ -43,7 +49,7 @@ public static class KillFeedbackLaunch
 
     public static FeedbackLaunchRequest? Prepare(string gameDirectory, KillFeedbackSettings settings, string? moduleDirectory = null)
     {
-        if (!settings.Enabled) return null;
+        if (!settings.RequiresClientModule) return null;
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("击杀反馈目前支持 Windows 版求生之路 2。");
         var directory = Path.GetFullPath(moduleDirectory ?? ModuleDirectory);
         var module = Path.Combine(directory, "EmberFeedback.dll");
@@ -93,6 +99,7 @@ public static class KillFeedbackLaunch
         catch (System.Text.Json.JsonException ex) { throw new IOException("客户端模块状态文件不完整。", ex); }
         if (status?.Session != session || status.Pid != expectedProcessId) return null;
         if (status.Phase == "error") throw new IOException("客户端模块初始化失败：" + status.Error);
+        if (status.AutoPistolError != 0) throw new IOException("手枪连点初始化或输入失败，Windows 错误码：" + status.AutoPistolError);
         return status;
     }
 
@@ -104,7 +111,7 @@ public static class KillFeedbackLaunch
         var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
         {
-            File.WriteAllText(temporary, $"[feedback]\nenabled={(settings.Enabled ? 1 : 0)}\nscope={settings.Scope}\nsession={session}\n");
+            File.WriteAllText(temporary, $"[feedback]\nenabled={(settings.RequiresClientModule ? 1 : 0)}\nkill_feedback={(settings.Enabled ? 1 : 0)}\nauto_pistol={(settings.AutoPistolEnabled ? 1 : 0)}\nscope={settings.Scope}\nsession={session}\n");
             File.Move(temporary, path, true);
         }
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
@@ -116,7 +123,15 @@ public sealed record FeedbackLaunchRequest(string Session, int Scope, string Mod
 public sealed record NativeFeedbackStatus(string Session, int Pid, string Phase, string? Error, int Scope,
     long PaintFrames, long DeathEvents, long AcceptedKills, long HudDraws, int RegisteredEvents, bool Audio)
 {
+    public bool KillFeedbackEnabled { get; init; } = true;
+    public bool AutoPistolEnabled { get; init; }
+    public bool AutoPistolReady { get; init; }
+    public bool AutoPistolActive { get; init; }
+    public long AutoPistolClicks { get; init; }
+    public int AutoPistolError { get; init; }
     public bool Initialized => Phase is "initialized" or "listening";
-    public string Describe() => $"客户端反馈已加载：{(Scope == 0 ? "所有僵尸" : "仅特感（含 Tank / Witch）")}；"
-        + $"监听 {RegisteredEvents}/3 类死亡事件，收到 {DeathEvents}，确认本人击杀 {AcceptedKills}，绘制 {HudDraws} 帧。";
+    public string Describe() => (KillFeedbackEnabled
+        ? $"客户端反馈已加载：{(Scope == 0 ? "所有僵尸" : "仅特感（含 Tank / Witch）")}；监听 {RegisteredEvents}/3 类死亡事件，收到 {DeathEvents}，确认本人击杀 {AcceptedKills}，绘制 {HudDraws} 帧。"
+        : "客户端模块已加载。")
+        + (AutoPistolEnabled ? $" 手枪连点{(AutoPistolReady ? "已就绪" : "初始化中")}，已点击 {AutoPistolClicks} 次。" : "");
 }

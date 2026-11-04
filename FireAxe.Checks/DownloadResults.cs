@@ -18,7 +18,8 @@ internal static partial class Program
         Check(success.Outcome == WorkshopDownloadOutcome.Installed && File.Exists(root.DownloadHistory.GetFilePath(success)),
             "download results are successful only after validation and archive commit, and point at the actual VPK");
         Check(failed.Outcome == WorkshopDownloadOutcome.Failed && !string.IsNullOrWhiteSpace(failed.Error)
-            && root.DownloadHistory.GetFilePath(failed) is null, "rejected downloaded bytes leave a visible failure reason without claiming an installed path");
+            && File.Exists(root.DownloadHistory.GetFilePath(failed)) && root.DownloadHistory.FindInstalled(45) is null,
+            "rejected downloaded bytes remain available with their failure reason without being installed");
         var loaded = new WorkshopDownloadHistory(root).GetResults();
         Check(loaded.Single(result => result.Id == 45).Error == failed.Error
             && loaded.Single(result => result.Id == 44).StorageFileName == success.StorageFileName,
@@ -33,8 +34,8 @@ internal static partial class Program
         var goodRow = model.DownloadResults.Single(result => result.WorkshopId == "工坊 ID：44");
         var badRow = model.DownloadResults.Single(result => result.WorkshopId == "工坊 ID：45");
         Check(goodRow.CanOpenFile && ((ICommand)goodRow.OpenFileLocationCommand).CanExecute(null)
-            && !badRow.CanOpenFile && !((ICommand)badRow.OpenFileLocationCommand).CanExecute(null),
-            "file-location actions are available for real archived files, and disabled for rejected downloads");
+            && badRow.CanOpenFile && ((ICommand)badRow.OpenFileLocationCommand).CanExecute(null),
+            "file-location actions open both installed VPKs and preserved rejected downloads");
         Check(badRow.Detail.Contains(failed.Error!) && window.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text == badRow.Detail)
             && window.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text == goodRow.FilePath),
             "the results tab renders the specific failure and final VPK path");
@@ -62,8 +63,9 @@ internal static partial class Program
         }
         ClickRemove(45);
         Check(root.GetDescendants().OfType<WorkshopVpkAddon>().All(node => node.PublishedFileId != 45)
-            && new WorkshopDownloadHistory(root).GetResults().All(result => result.Id != 45),
-            "clicking delete on a failed result removes its empty node and persistent history");
+            && new WorkshopDownloadHistory(root).GetResults().All(result => result.Id != 45)
+            && File.Exists(root.DownloadHistory.GetFilePath(failed)),
+            "removing a failed result removes its empty node and history while preserving downloaded bytes");
         var installed = root.DownloadHistory.FindInstalled(44)!;
         var body = installed.VpkFilePath!;
         var title = root.DownloadHistory.GetDisplayTitle(installed);

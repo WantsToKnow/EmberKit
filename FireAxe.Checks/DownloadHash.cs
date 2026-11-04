@@ -16,7 +16,8 @@ internal static partial class Program
         var sample = Path.Combine(directory, "sample.vpk");
         WriteVpk(sample, "Hash mismatch sample", "models/v_models/v_rif_ak47.mdl");
         var data = File.ReadAllBytes(sample);
-        using var client = new HttpClient(new SteamFixtureHandler(data) { MismatchHash = true });
+        var steam = new SteamFixtureHandler(data) { MismatchHash = true };
+        using var client = new HttpClient(steam);
         var downloads = new FixtureDownloads(data);
         var root = new AddonRoot { DirectoryPath = Path.Combine(directory, "game", "left4dead2", "addons"),
             TaskScheduler = TaskScheduler.FromCurrentSynchronizationContext(), HttpClient = client, DownloadService = downloads };
@@ -36,6 +37,11 @@ internal static partial class Program
         Complete(addon.DownloadCheckTask ?? Task.CompletedTask);
         Check(addon.VpkFilePath is null && Result(47)!.Error!.Contains("Hash 不一致") && !Result(47)!.HashCheckSkipped,
             "explicit strict checking rejects a valid same-size VPK with a different workshop SHA-1");
+        var retainedHistory = new WorkshopDownloadHistory(root);
+        var retained = retainedHistory.GetFilePath(retainedHistory.GetResults().Single(result => result.Id == 47));
+        Check(retained is not null && File.ReadAllBytes(retained).SequenceEqual(data)
+            && new WorkshopDownloadResultViewModel(Result(47)!, root.DownloadHistory).CanOpenFile,
+            "a rejected complete download is preserved and can be opened from persisted download results");
 
         HashOption().IsChecked = true;
         Check(model.IgnoreWorkshopHash, "the download checkbox updates the actual bypass option");
@@ -81,12 +87,11 @@ internal static partial class Program
         Check(Result(48)!.HashCheckSkipped && !Result(48)!.Error!.Contains("大小") && !Result(48)!.Error!.Contains("Hash 不一致")
             && root.DownloadHistory.FindInstalled(48) is null,
             "bypass still rejects an invalid VPK whose size exactly matches Steam metadata");
-        model.LinkText = "49";
-        downloads.CorruptNext = true;
-        ((ICommand)model.DownloadCommand).Execute(null);
-        Pump(() => !model.IsBusy && Result(49)?.Outcome == WorkshopDownloadOutcome.Failed);
-        Check(Result(49)!.HashCheckSkipped && Result(49)!.Error!.Contains("大小") && root.DownloadHistory.FindInstalled(49) is null,
-            "bypass still rejects a download whose size differs from Steam metadata");
+        steam.MismatchSize = true;
+        Complete(addon.CheckDownloadAsync());
+        Check(Result(47) is { Outcome: WorkshopDownloadOutcome.Installed, HashCheckSkipped: true }
+            && File.ReadAllBytes(addon.VpkFilePath!).SequenceEqual(data),
+            "a valid VPK is installed unchanged even when its size differs from Steam metadata");
         using (var reopened = new WorkshopTransferViewModel(root))
             Check(reopened.IgnoreWorkshopHash && reopened.EnableDownloads,
                 "reopening the dialog restores the defaults of ignoring workshop hashes and enabling completed mods");

@@ -121,7 +121,9 @@ public class WorkshopVpkAddon : VpkAddon
                 if (download.Status == DownloadStatus.Cancelled) throw new OperationCanceledException("下载已取消。");
                 if (download.Status != DownloadStatus.Succeeded) throw download.Exception ?? new IOException("下载未成功。");
             }
-            if (details.FileSize > 0 && FileSystemUtils.GetContentLength(file) != details.FileSize) throw new InvalidDataException("下载大小与 Steam 元数据不一致。");
+            var actualSize = FileSystemUtils.GetContentLength(file);
+            if (details.FileSize > 0 && actualSize != details.FileSize)
+                Log.Warning("Workshop {WorkshopId} size differs from Steam metadata; keeping download. Expected {ExpectedSize}, actual {ActualSize}", id, details.FileSize, actualSize);
             var expected = new Uri(url).Segments.LastOrDefault()?.Trim('/');
             if (!ignoreWorkshopHash && expected is { Length: 40 } && expected.All(char.IsAsciiHexDigit))
             {
@@ -158,14 +160,15 @@ public class WorkshopVpkAddon : VpkAddon
             Log.Error(ex, "Explicit workshop download failed");
             await creator.StartNew(self =>
             {
-                self.Root.DownloadHistory.Record(new(id, title, WorkshopDownloadOutcome.Failed, Error: ex.Message, HashCheckSkipped: ignoreWorkshopHash));
+                self.Root.DownloadHistory.Record(new(id, title, WorkshopDownloadOutcome.Failed, Error: ex.Message, HashCheckSkipped: ignoreWorkshopHash,
+                    RetainedFileName: file is not null && File.Exists(file) ? Path.GetFileName(file) : null));
                 self.SetProblem(new AddonDownloadFailedProblem(self) { Url = url ?? "", FilePath = file ?? "", Exception = ex });
             });
         }
         finally
         {
             await creator.StartNew(self => self.DownloadItem = null);
-            if (file is not null && File.Exists(file)) File.Delete(file);
+            // CommitDownloadAsync consumes successful downloads. Keep failed files for recovery.
             if (Directory.Exists(Root.Storage.TemporaryPath) && !Directory.EnumerateFileSystemEntries(Root.Storage.TemporaryPath).Any())
                 try { Directory.Delete(Root.Storage.TemporaryPath); } catch (IOException) { }
         }

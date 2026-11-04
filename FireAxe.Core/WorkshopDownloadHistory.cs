@@ -6,7 +6,7 @@ namespace FireAxe;
 public enum WorkshopDownloadOutcome { Installed, Failed, Cancelled }
 public sealed record WorkshopDownloadResult(ulong Id, string Title, WorkshopDownloadOutcome Outcome,
     string? StorageFileName = null, string? Error = null, DateTimeOffset? FinishedAt = null, bool HashCheckSkipped = false,
-    bool RemovedFromHistory = false);
+    bool RemovedFromHistory = false, string? RetainedFileName = null);
 
 // Keep the latest completed attempt per workshop ID, independently of missing-node cleanup.
 public sealed class WorkshopDownloadHistory(AddonRoot root)
@@ -88,6 +88,12 @@ public sealed class WorkshopDownloadHistory(AddonRoot root)
 
     public string? GetFilePath(WorkshopDownloadResult result)
     {
+        if (result.RetainedFileName is { } retained && retained == Path.GetFileName(retained)
+            && retained.EndsWith(".vpk", StringComparison.OrdinalIgnoreCase))
+        {
+            var retainedPath = Path.Combine(root.Storage.TemporaryPath, retained);
+            if (File.Exists(retainedPath)) return retainedPath;
+        }
         if (FindInstalled(result.Id)?.VpkFilePath is { } path) return path;
         return result.StorageFileName is { } name && ModStorage.IsBodyName(name)
             ? Path.Combine(root.Storage.BackupPath, name) : null;

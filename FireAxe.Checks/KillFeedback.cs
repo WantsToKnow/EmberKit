@@ -13,7 +13,8 @@ internal static partial class Program
     private static void CheckKillFeedback(string output)
     {
         var settings = new KillFeedbackSettings();
-        Check(!settings.Enabled && settings.Scope == 1, "kill feedback defaults off, with specials selected");
+        Check(!settings.Enabled && !settings.AutoPistolEnabled && !settings.RequiresClientModule && settings.Scope == 1,
+            "kill feedback and automatic pistol clicks default off, with specials selected");
         settings.Enabled = true; settings.Scope = 0;
         var reloaded = JsonConvert.DeserializeObject<KillFeedbackSettings>(JsonConvert.SerializeObject(settings))!;
         Check(reloaded.Enabled && reloaded.Scope == 0, "both feedback settings survive JSON round-trip");
@@ -25,9 +26,15 @@ internal static partial class Program
         Directory.CreateDirectory(moduleDirectory);
         var session = new string('A', 32);
         var config = KillFeedbackLaunch.WriteConfiguration(moduleDirectory, settings, session);
-        Check(File.ReadAllText(config) == $"[feedback]\nenabled=1\nscope=0\nsession={session}\n"
+        Check(File.ReadAllText(config) == $"[feedback]\nenabled=1\nkill_feedback=1\nauto_pistol=0\nscope=0\nsession={session}\n"
             && FileSystemUtils.IsSamePath(config, Path.Combine(bundle, "data", "Feedback", "settings.ini")),
             "native configuration and a per-launch session stay in the portable data directory");
+        var pistolSettings = JsonConvert.DeserializeObject<KillFeedbackSettings>(
+            JsonConvert.SerializeObject(new KillFeedbackSettings { AutoPistolEnabled = true }))!;
+        config = KillFeedbackLaunch.WriteConfiguration(moduleDirectory, pistolSettings, session);
+        Check(pistolSettings.RequiresClientModule && !pistolSettings.Enabled && pistolSettings.AutoPistolEnabled
+            && File.ReadAllText(config).Contains("enabled=1\nkill_feedback=0\nauto_pistol=1\n"),
+            "pistol-only settings survive persistence and request the client module without enabling kill feedback");
         var loaderInfo = KillFeedbackLaunch.BuildLoaderStartInfo(1234, Path.Combine(bundle, "game path", "left4dead2.exe"), moduleDirectory, session);
         Check(!loaderInfo.UseShellExecute && loaderInfo.CreateNoWindow && loaderInfo.ArgumentList.Count == 4
             && loaderInfo.ArgumentList[1].Contains("game path") && loaderInfo.ArgumentList[3] == session,
@@ -66,6 +73,8 @@ internal static partial class Program
         File.Copy(shippedLoader, Path.Combine(moduleDirectory, "EmberFeedback.Loader.exe"), true);
         CheckThrows<InvalidOperationException>(() => KillFeedbackLaunch.Prepare(game, settings, moduleDirectory),
             "an unrecognized game build is rejected before the ABI-dependent module is requested");
+        CheckThrows<InvalidOperationException>(() => new GameConsole(game, Path.Combine(bundle, "pistol-console"), moduleDirectory).PrepareLaunch(pistolSettings),
+            "a pistol-only launch follows the same supported-game validation and module preparation");
 
         var root = new AddonRoot { DirectoryPath = addons, GamePath = game, TaskScheduler = TaskScheduler.FromCurrentSynchronizationContext(), DownloadService = new FixtureDownloads([]) };
         using var explorer = new AddonNodeExplorerViewModel(root);
@@ -77,6 +86,10 @@ internal static partial class Program
         var scope = window.GetVisualDescendants().OfType<ComboBox>().Single(control => control.Name == "killFeedbackScope");
         Check(enabled.IsChecked == false && scope.SelectedIndex == 1 && !scope.IsEffectivelyEnabled,
             "launch-area feedback controls show the persisted defaults and disable scope while off");
+        var pistolToggle = window.GetVisualDescendants().OfType<CheckBox>().Single(control => control.Name == "autoPistolCheckBox");
+        pistolToggle.IsChecked = true; PumpFrames();
+        Check(root.KillFeedback.AutoPistolEnabled && transfer.KillFeedback.AutoPistolEnabled && !root.KillFeedback.Enabled && !scope.IsEffectivelyEnabled,
+            "the independent pistol checkbox is shared by both launch paths without enabling the kill HUD");
         enabled.IsChecked = true; scope.SelectedIndex = 0; PumpFrames();
         Check(root.KillFeedback.Enabled && transfer.KillFeedback.Scope == 0 && scope.IsEffectivelyEnabled,
             "launch-area checkbox and range selection bind through to both launch paths");

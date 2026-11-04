@@ -23,7 +23,7 @@ public sealed class GameConsole(string gameDirectory, string? settingsDirectory 
         if (!GamePathUtils.CheckValidity(GameDirectory)) throw new InvalidOperationException("请先设置游戏目录。");
         if (ModStorage.IsGameRunning(GameDirectory))
             throw new InvalidOperationException("游戏已经运行。若本次不是通过助手启动，请先退出游戏，再点「通过助手启动游戏」。");
-        FeedbackRequest = feedback is { Enabled: true } ? KillFeedbackLaunch.Prepare(GameDirectory, feedback, feedbackModuleDirectory) : null;
+        FeedbackRequest = feedback?.RequiresClientModule == true ? KillFeedbackLaunch.Prepare(GameDirectory, feedback, feedbackModuleDirectory) : null;
         using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
         var settings = new Settings(((IPEndPoint)listener.LocalEndpoint).Port, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)), FeedbackRequest?.Session);
@@ -83,7 +83,7 @@ public sealed class GameConsole(string gameDirectory, string? settingsDirectory 
                 timeout.Token.ThrowIfCancellationRequested();
                 if (game.HasExited) throw new IOException("游戏在模块初始化期间退出。");
                 var status = KillFeedbackLaunch.ReadStatus(request.ModuleDirectory, request.Session, game.Id);
-                if (status is { Initialized: true }) return status.Describe();
+                if (status is { Initialized: true } && (!status.AutoPistolEnabled || status.AutoPistolReady)) return status.Describe();
                 await Task.Delay(250, timeout.Token);
             }
             throw new IOException("DLL 装载已返回，但未收到游戏绘制线程的初始化回执；请查看 data/Feedback 中的日志和本次会话状态。");

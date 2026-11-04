@@ -124,21 +124,35 @@ internal static partial class Program
     private sealed class SteamFixtureHandler(byte[] data) : HttpMessageHandler
     {
         public int MetadataRequests;
+        public int CollectionRequests;
+        public Dictionary<ulong, ulong[]> Collections { get; } = [];
         public bool DenySearch;
         public bool MismatchHash;
+        public bool MismatchSize;
         private readonly string _sha1 = Convert.ToHexString(SHA1.HashData(data));
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
         {
             if (request.Method == HttpMethod.Get)
                 return DenySearch ? new(HttpStatusCode.Forbidden) : new(HttpStatusCode.OK) { Content = new StringContent("https://steamcommunity.com/sharedfiles/filedetails/?id=42") };
-            MetadataRequests++;
             var body = await request.Content!.ReadAsStringAsync(token);
             var ids = body.Split('&').Select(field => field.Split('=', 2)).Where(pair => WebUtility.UrlDecode(pair[0]).StartsWith("publishedfileids["))
                 .Select(pair => ulong.Parse(pair[1])).Reverse().ToArray();
+            if (request.RequestUri!.AbsolutePath.Contains("GetCollectionDetails"))
+            {
+                CollectionRequests++;
+                var collections = ids.Select(id => new
+                {
+                    publishedfileid = id.ToString(), result = Collections.ContainsKey(id) ? 1 : 9,
+                    children = Collections.GetValueOrDefault(id, []).Select(child => new
+                    { publishedfileid = child.ToString(), filetype = Collections.ContainsKey(child) ? 2 : 0 })
+                });
+                return new(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(new { response = new { result = 1, collectiondetails = collections } }), Encoding.UTF8, "application/json") };
+            }
+            MetadataRequests++;
             var details = ids.Select(id => new
             {
                 publishedfileid = id.ToString(), result = id == 999 ? 9 : 1, consumer_app_id = id == 730 ? 730 : 550,
-                title = "Workshop sample " + id, filename = id == 888 ? "collection" : "sample.vpk", file_size = data.Length,
+                title = "Workshop sample " + id, filename = Collections.ContainsKey(id) ? "collection_preview.jpg" : id == 888 ? "collection" : "sample.vpk", file_size = data.Length + (MismatchSize ? 1234 : 0),
                 file_url = id == 888 ? "" : "https://cdn.steamusercontent.com/ugc/123/" + (MismatchHash ? new string('0', 40) : _sha1) + "/", preview_url = "", time_updated = 1
             });
             return new(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(new { response = new { publishedfiledetails = details } }), Encoding.UTF8, "application/json") };

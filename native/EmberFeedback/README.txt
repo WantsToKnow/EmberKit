@@ -34,6 +34,22 @@ are initialized there. DLL loading and owner-thread initialization have
 separate receipts; the manager does not treat the former as proof of the latter.
 The client module remains resident for the lifetime of that game process.
 
+Optional pistol auto-clicking is OFF by default and independent of kill HUDs.
+The owner thread resolves m_hActiveWeapon, m_lifeState and m_iClip1 from receive
+tables, accepts the pinned build's CPistol network class, and publishes only
+the current gameplay/weapon state. A dedicated Windows low-level mouse hook
+tracks physical left-button holds, ignoring injected input. Ordinary SendInput
+down/up events repeat while the game is foreground, the player is a living
+survivor, and a loaded pistol is equipped. Release, menus/console, loss of focus
+and stale owner-thread state stop repetition; switching to another weapon
+restores ordinary held input. Weapon fire rates and game bindings are unchanged.
+Config keys kill_feedback and auto_pistol select the two features independently;
+enabled authorizes their shared client module. Status includes autoPistolReady,
+autoPistolActive, autoPistolClicks, autoPistolError and autoPistolState. Native
+checks exercise input decisions without installing hooks or generating clicks.
+References: https://learn.microsoft.com/en-us/windows/win32/winmsg/lowlevelmouseproc
+            https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput
+
 Implementation:
 - Source's client IGameEventListener2 subscriptions: player_death,
   infected_death and witch_killed; no damage attribution heuristics.

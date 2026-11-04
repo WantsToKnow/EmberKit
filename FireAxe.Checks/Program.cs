@@ -75,6 +75,17 @@ internal static partial class Program
             foreach (var resource in resources.Where(path => path.EndsWith(".mdl", StringComparison.OrdinalIgnoreCase)).Take(12)) Console.WriteLine(resource);
             return;
         }
+        if (args is ["--inspect-workshop", var workshopLink])
+        {
+            if (!PublishedFileUtils.TryParsePublishedFileId(workshopLink, out var id)) throw new ArgumentException("无效的工坊链接 / ID。");
+            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+            var plan = WorkshopManifest.ResolveDownloadsAsync([new(id, "工坊 " + id)], client, default).GetAwaiter().GetResult();
+            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new
+            {
+                Items = plan.Items.Select(item => new { item.Entry.Id, item.File.Title, item.File.FileSize }), plan.Skipped
+            }));
+            return;
+        }
         Check(Targets(@"MODELS\V_MODELS\V_RIF_AK47.MDL").Contains("ak47"), "case and slash normalization");
         Check(Targets("models/w_models/weapons/w_rifle_m16a2.mdl").SetEquals(["m16"]), "M4 appearance is categorized by its M16 replacement slot");
         Check(Targets("models/survivors/survivor_gambler.mdl").Contains("survivor:nick"), "Nick replacement");
@@ -203,6 +214,7 @@ internal static partial class Program
         Pump(() => catalog.Categories.Single(category => category.Id == "ak47").Count == 1);
         Check(ak2.Inspection?.Targets.Single().Target.Id == "m16", "changed VPK is reclassified without a stale cache");
         CheckVersionTwo(output, root, explorer);
+        CheckWorkshopCollections();
         CheckUnifiedStorage(output);
         CheckMainMenuReload(output);
         CheckReadableModControls(output);
