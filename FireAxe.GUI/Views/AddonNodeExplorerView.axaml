@@ -18,24 +18,22 @@
   
   <Grid Name="workspaceLayout">
     <Grid.ColumnDefinitions>
-      <ColumnDefinition Width="250" MinWidth="220" MaxWidth="360"/>
+      <ColumnDefinition Width="224" MinWidth="220" MaxWidth="320"/>
       <ColumnDefinition Width="8"/>
       <ColumnDefinition Width="*" MinWidth="520"/>
     </Grid.ColumnDefinitions>
     <Border Grid.Column="0" Background="#1A2231" CornerRadius="8">
       <ScrollViewer Name="toolScrollViewer" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled" AllowAutoHide="False" HorizontalContentAlignment="Stretch">
-        <StackPanel Spacing="16" Margin="12">
-          <StackPanel Spacing="7">
-            <TextBlock Text="MOD 工作台" FontSize="21" FontWeight="SemiBold" Foreground="#E4EDFF"/>
-            <TextBlock Text="{Binding ModCatalog.Summary}" FontSize="12" Foreground="#A8BBD8" TextWrapping="Wrap"/>
-            <TextBlock Text="{Binding ModCatalog.Storage.Status}" FontSize="11" Foreground="#FFCE8E" TextWrapping="Wrap"/>
-            <TextBlock Text="{Binding ModCatalog.RecheckStatus}" FontSize="11" Foreground="#A8BBD8" TextWrapping="Wrap"/>
+        <StackPanel Spacing="12" Margin="10">
+          <StackPanel Spacing="5">
+            <TextBlock Text="EmberKit" FontSize="22" FontWeight="SemiBold" Foreground="#E4EDFF"/>
+            <TextBlock Text="{Binding ModCatalog.LibrarySummary}" ToolTip.Tip="{Binding ModCatalog.Summary}" FontSize="12" Foreground="#A8BBD8" TextWrapping="Wrap"/>
           </StackPanel>
           <Button Name="launchGameButton" Command="{Binding LaunchGameCommand}" Background="#B8E99B" Foreground="#142112"
-                  BorderBrush="#B8E99B" CornerRadius="7" Padding="9,7" MinHeight="50" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  BorderBrush="#B8E99B" CornerRadius="7" Padding="8,6" MinHeight="48" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   ToolTip.Tip="通过 Steam 启动游戏，并建立一键应用所需的连接。">
             <StackPanel Spacing="2">
-              <TextBlock Text="▶ 从助手启动游戏" FontSize="15" FontWeight="Bold"/>
+              <TextBlock Text="▶ 从助手启动游戏" FontSize="14" FontWeight="Bold"/>
               <TextBlock Text="求生之路 2" FontSize="11" Opacity="0.8" HorizontalAlignment="Center"/>
             </StackPanel>
           </Button>
@@ -52,9 +50,9 @@
             </StackPanel>
           </Expander>
           <StackPanel Spacing="7">
-            <TextBlock Text="工具" FontSize="13" FontWeight="SemiBold" Foreground="#A8BBD8"/>
+            <TextBlock Text="工具" FontSize="12" FontWeight="SemiBold" Foreground="#A8BBD8"/>
             <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto">
-              <Grid.Styles><Style Selector="Button"><Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="HorizontalContentAlignment" Value="Center"/><Setter Property="Margin" Value="2"/><Setter Property="Padding" Value="7,6"/><Setter Property="FontSize" Value="12"/></Style></Grid.Styles>
+              <Grid.Styles><Style Selector="Button"><Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="HorizontalContentAlignment" Value="Center"/><Setter Property="Margin" Value="2"/><Setter Property="Padding" Value="6,5"/><Setter Property="FontSize" Value="11"/><Setter Property="MinHeight" Value="28"/></Style></Grid.Styles>
               <Button Content="工坊下载" Command="{Binding OpenWorkshopDownloadCommand}"/>
               <Button Grid.Column="1" Content="本地存储" Command="{Binding OpenModOrganizerCommand}"/>
               <Button Grid.Row="1" Content="导入 TXT" Command="{Binding ImportWorkshopTextCommand}"/>
@@ -69,8 +67,15 @@
             <TextBlock Text="游戏中点击将退出当前对局，返回主菜单并重载。" Foreground="#FFCE8E" TextWrapping="Wrap" FontSize="11"/>
             <TextBlock Name="quickApplyModsStatus" Text="{Binding ModApplyStatus}" TextWrapping="Wrap" Foreground="#B8E99B" FontSize="12"/>
           </StackPanel>
-          <TextBlock Text="多个 Mod 同时替换同一对象，可在「重复替换」中查看。" IsVisible="{Binding ModCatalog.HasEnabledOverlap}"
+          <TextBlock Text="存在同时启用的重复替换，可在右侧「重复替换」检查。" IsVisible="{Binding ModCatalog.HasEnabledOverlap}"
                      FontSize="11" Foreground="#FFBE72" TextWrapping="Wrap"/>
+          <Expander Name="workspaceStatusExpander" Header="同步状态" IsExpanded="False" HorizontalAlignment="Stretch" FontSize="12">
+            <StackPanel Spacing="6">
+              <TextBlock Text="{Binding ModCatalog.Storage.Status}" FontSize="11" Foreground="#FFCE8E" TextWrapping="Wrap"/>
+              <TextBlock Text="{Binding ModCatalog.RecheckStatus}" FontSize="11" Foreground="#A8BBD8" TextWrapping="Wrap"/>
+              <TextBlock Text="{Binding ModCatalog.Summary}" FontSize="11" Foreground="#A8BBD8" TextWrapping="Wrap"/>
+            </StackPanel>
+          </Expander>
         </StackPanel>
       </ScrollViewer>
     </Border>

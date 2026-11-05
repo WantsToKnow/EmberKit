@@ -2,140 +2,107 @@
              xmlns:vm="using:FireAxe.ViewModels" xmlns:conv="using:FireAxe.ValueConverters" xmlns:v="using:FireAxe.Views"
              x:Class="FireAxe.Views.ModCategoryHomeView" x:DataType="vm:ModCatalogViewModel">
   <UserControl.Styles>
-    <Style Selector="Button.categoryCard">
-      <Setter Property="Background" Value="#1B2636"/>
-      <Setter Property="BorderBrush" Value="#35465E"/>
-      <Setter Property="BorderThickness" Value="1"/>
-      <Setter Property="CornerRadius" Value="14"/>
-      <Setter Property="Padding" Value="22"/>
-      <Setter Property="Margin" Value="0,0,14,14"/>
+    <Style Selector="Expander.catalogCategory, Expander.catalogTarget">
       <Setter Property="HorizontalAlignment" Value="Stretch"/>
       <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-      <Setter Property="MinHeight" Value="182"/>
     </Style>
-    <Style Selector="Button.categoryCard:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#263A51"/>
-      <Setter Property="BorderBrush" Value="#82B8EA"/>
+    <Style Selector="Button.compact">
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Padding" Value="10,6"/>
     </Style>
   </UserControl.Styles>
-  <Grid RowDefinitions="Auto,Auto,*" RowSpacing="16" Margin="8,4,0,0">
-    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
-      <StackPanel Spacing="5">
-        <TextBlock Text="按游戏对象，找到你的 Mod" FontSize="25" FontWeight="SemiBold" TextWrapping="Wrap"/>
-        <TextBlock Text="每个 Mod 只归一个分类；点击展开，可直接开关或更改标签。" Foreground="#A6B8D0" FontSize="12" TextWrapping="Wrap"/>
+  <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10" Margin="8,4,0,0">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,0,10,0">
+      <StackPanel Spacing="3">
+        <TextBlock Text="模组目录" FontSize="23" FontWeight="SemiBold"/>
+        <TextBlock Text="分类和对象都可同时展开，调整后点击「应用 Mod」。" Foreground="#9AAFC9" FontSize="12" TextWrapping="Wrap"/>
       </StackPanel>
-      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,14,0">
-        <Button Content="重复替换" Command="{Binding ShowOverlaps}" IsVisible="{Binding HasOverlaps}" Padding="11,7" FontSize="12"/>
-        <Button Name="showAllModsButton" Content="查看全部 Mod →" Command="{Binding ShowAll}" Padding="12,7" FontSize="12"/>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+        <Button Classes="compact" Content="重复替换" Command="{Binding ShowOverlaps}" IsVisible="{Binding HasOverlaps}"/>
+        <Button Classes="compact" Name="showAllModsButton" Content="完整列表 →" Command="{Binding ShowAll}"/>
       </StackPanel>
     </Grid>
-    <TextBox Grid.Row="1" Text="{Binding CategorySearchText}" Watermark="搜索分类或对象，例如：AK-47、Hunter、医疗包…"
-             FontSize="15" Padding="14,11" Margin="0,0,14,0"/>
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="7" Margin="0,0,10,0">
+      <TextBox Text="{Binding CategorySearchText}" Watermark="搜索种类、AK-47、Hunter 或 Mod 名称…" FontSize="14" Padding="12,8"/>
+      <Button Grid.Column="1" Classes="compact" Content="展开分类" Command="{Binding ExpandSections}"/>
+      <Button Grid.Column="2" Classes="compact" Content="全部收起" Command="{Binding CollapseSections}"/>
+    </Grid>
     <ScrollViewer Name="categoryScrollViewer" Grid.Row="2" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled" AllowAutoHide="False">
       <Panel>
-        <ItemsControl ItemsSource="{Binding SectionRows}">
+        <ItemsControl Name="categoryTree" ItemsSource="{Binding Sections}">
           <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="vm:ModCategoryRow">
-              <StackPanel>
-                <ItemsControl ItemsSource="{Binding Sections}">
-                  <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="{Binding Columns}"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:ModCategorySection">
-              <Button Classes="categoryCard" Command="{Binding Expand}" ToolTip.Tip="点击在下方展开 Mod，再次点击收起。">
-                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="15">
-                  <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
-                    <Border Background="#26394F" CornerRadius="12" Width="52" Height="52">
-                      <PathIcon Data="{Binding Icon}" Foreground="{Binding Accent}" Width="30" Height="30"/>
-                    </Border>
-                    <StackPanel Grid.Column="1" Spacing="5" VerticalAlignment="Center">
-                      <TextBlock Text="{Binding Name}" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                      <TextBlock Text="{Binding EnabledText}" Foreground="#A6B8D0" FontSize="12"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="2" HorizontalAlignment="Right">
-                      <TextBlock Text="{Binding Count}" FontSize="28" FontWeight="SemiBold" Foreground="{Binding Accent}" HorizontalAlignment="Right"/>
-                      <TextBlock Text="个 Mod" FontSize="11" Foreground="#A6B8D0" HorizontalAlignment="Right"/>
-                    </StackPanel>
-                  </Grid>
-                  <TextBlock Grid.Row="1" Text="{Binding Targets}" Foreground="#CBD8E9" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" FontSize="13"/>
-                  <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                    <TextBlock Text="{Binding Description}" Foreground="#94A9C3" TextWrapping="Wrap" FontSize="12"/>
-                    <TextBlock Grid.Column="1" Text="{Binding ExpandText}" Foreground="{Binding Accent}" FontSize="13" VerticalAlignment="Center"/>
-                  </Grid>
-                </Grid>
-              </Button>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <Border Name="inlineCategoryPanel" Background="#172233" BorderBrush="#415976" BorderThickness="1" CornerRadius="12"
-                        Padding="18" Margin="0,0,14,18" IsVisible="{Binding ExpandedCatalog, Converter={x:Static ObjectConverters.IsNotNull}}">
-                  <ContentControl Content="{Binding ExpandedCatalog}" HorizontalContentAlignment="Stretch">
-                    <ContentControl.ContentTemplate>
-                      <DataTemplate x:DataType="vm:ModCatalogViewModel">
-                        <StackPanel Spacing="14">
-                          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                            <StackPanel Spacing="4">
-                              <TextBlock Text="{Binding ExpandedSection.Name}" FontSize="22" FontWeight="SemiBold"/>
-                              <TextBlock Text="开关调整后，点击左侧「应用 Mod」生效；分类标签会自动保存。" TextWrapping="Wrap" FontSize="12" Foreground="#A6B8D0"/>
-                            </StackPanel>
-                            <Button Name="openCategoryPageButton" Grid.Column="1" Content="完整列表 →" Command="{Binding ExpandedSection.Open}"
-                                    VerticalAlignment="Center" Padding="12,8" FontSize="12"/>
-                          </Grid>
-                          <ListBox Name="inlineTargetList" ItemsSource="{Binding InlineTargets}" SelectedItem="{Binding InlineTarget, Mode=TwoWay}"
-                                   Background="Transparent" Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                            <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate></ListBox.ItemsPanel>
-                            <ListBox.Styles>
-                              <Style Selector="ListBoxItem"><Setter Property="Padding" Value="12,7"/><Setter Property="Margin" Value="0,0,6,6"/><Setter Property="CornerRadius" Value="6"/></Style>
-                            </ListBox.Styles>
-                            <ListBox.ItemTemplate>
-                              <DataTemplate x:DataType="vm:ModCategoryFilter">
-                                <StackPanel Orientation="Horizontal" Spacing="7">
-                                  <TextBlock Text="{Binding Name}"/>
-                                  <TextBlock Text="{Binding Count}" Foreground="#9FB5D0"/>
-                                </StackPanel>
-                              </DataTemplate>
-                            </ListBox.ItemTemplate>
-                          </ListBox>
-                          <ItemsControl Name="inlineModList" ItemsSource="{Binding InlineMods}">
-                            <ItemsControl.ItemTemplate>
-                              <DataTemplate x:DataType="vm:VpkAddonViewModel">
-                                <Border Background="#202E42" CornerRadius="9" Padding="14" Margin="0,0,0,10">
-                                  <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
-                                    <v:AddonIconView ImageSize="88" SpecialIconSize="0" IsVisible="{Binding ShouldShowImage}" VerticalAlignment="Top"/>
-                                    <StackPanel Grid.Column="1" Spacing="7">
-                                      <TextBlock Text="{Binding DisplayTitle}" FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/>
-                                      <TextBlock Text="{Binding CatalogLabel}" Foreground="#95BDF9" FontSize="12" TextWrapping="Wrap"/>
-                                      <TextBlock Text="{Binding Info.Author, StringFormat='作者：{0}'}" Foreground="#B7C6D9" FontSize="12"
-                                                 IsVisible="{Binding Info.Author, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                                      <TextBlock Text="{Binding Info.Description}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
-                                                 Foreground="#B7C6D9" FontSize="12" IsVisible="{Binding Info.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                                      <Expander Header="更改标签" FontSize="12" HorizontalAlignment="Stretch">
-                                        <ComboBox Name="inlineCatalogTag" ItemsSource="{Binding CatalogTags}" SelectedItem="{Binding SelectedCatalogTag, Mode=TwoWay}"
-                                                  HorizontalAlignment="Stretch" MaxDropDownHeight="360" AutomationProperties.Name="更改 Mod 分类标签">
-                                          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ModCatalogTag"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
-                                        </ComboBox>
-                                      </Expander>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="2" Spacing="10" VerticalAlignment="Center">
-                                      <v:AddonNodeEnableButton/>
-                                      <Button Name="inlineDetailsButton" Content="详情 →" Click="OpenModDetails" HorizontalAlignment="Center" Padding="12,6" FontSize="12"/>
-                                    </StackPanel>
-                                  </Grid>
-                                </Border>
-                              </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                          </ItemsControl>
-                          <TextBlock Text="这个标签下还没有 Mod。" IsVisible="{Binding InlineMods.Count, Converter={x:Static conv:CollectionConverters.IsEmpty}}"
-                                     Foreground="#A6B8D0" HorizontalAlignment="Center" Margin="12,18"/>
-                        </StackPanel>
-                      </DataTemplate>
-                    </ContentControl.ContentTemplate>
-                  </ContentControl>
-                </Border>
-              </StackPanel>
+            <DataTemplate x:DataType="vm:ModCategorySection">
+              <Border Background="#182333" BorderBrush="#30435B" BorderThickness="1" CornerRadius="10" Margin="0,0,10,10">
+                <Expander Name="categoryFolder" Classes="catalogCategory" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+                  <Expander.Header>
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12" Margin="4,5">
+                      <Border Background="#26394F" CornerRadius="9" Width="36" Height="36">
+                        <PathIcon Data="{Binding Icon}" Foreground="{Binding Accent}" Width="23" Height="23"/>
+                      </Border>
+                      <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                      <TextBlock Grid.Column="2" Text="{Binding EnabledText}" FontSize="12" Foreground="#9AAFC9" VerticalAlignment="Center"/>
+                      <Border Grid.Column="3" Background="#26394F" CornerRadius="6" Padding="10,5" MinWidth="38" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Count}" FontSize="16" FontWeight="SemiBold" Foreground="{Binding Accent}" HorizontalAlignment="Center"/>
+                      </Border>
+                    </Grid>
+                  </Expander.Header>
+                  <StackPanel Margin="14,0,14,14" Spacing="7">
+                    <Button Name="openCategoryPageButton" Classes="compact" Content="完整列表 →" Command="{Binding Open}" HorizontalAlignment="Right"/>
+                    <ItemsControl ItemsSource="{Binding VisibleChildren}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ModTargetSection">
+                          <Border Background="#1D2B3E" CornerRadius="7" Margin="0,0,0,7">
+                            <Expander Name="targetFolder" Classes="catalogTarget" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+                              <Expander.Header>
+                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="14" Margin="2,2">
+                                  <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                  <TextBlock Grid.Column="1" Text="{Binding EnabledText}" FontSize="11" Foreground="#9AAFC9" VerticalAlignment="Center"/>
+                                  <TextBlock Grid.Column="2" Text="{Binding Count}" FontSize="14" Foreground="#AFCBE9" MinWidth="25" TextAlignment="Right" VerticalAlignment="Center"/>
+                                </Grid>
+                              </Expander.Header>
+                              <ItemsControl Name="inlineModList" ItemsSource="{Binding VisibleMods}" Margin="8,0,8,4">
+                                <ItemsControl.ItemTemplate>
+                                  <DataTemplate x:DataType="vm:VpkAddonViewModel">
+                                    <Border Name="inlineModCard" Background="#25354A" CornerRadius="7" Padding="12" Margin="0,0,0,6">
+                                      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <v:AddonIconView ImageSize="72" SpecialIconSize="0" IsVisible="{Binding ShouldShowImage}" VerticalAlignment="Top"/>
+                                        <StackPanel Grid.Column="1" Spacing="4">
+                                          <TextBlock Text="{Binding DisplayTitle}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/>
+                                          <TextBlock Text="{Binding CatalogLabel}" Foreground="#95BDF9" FontSize="11" TextWrapping="Wrap"/>
+                                          <TextBlock Text="{Binding Info.Author, StringFormat='作者：{0}'}" Foreground="#B7C6D9" FontSize="11"
+                                                     IsVisible="{Binding Info.Author, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                          <TextBlock Text="{Binding Info.Description}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" Foreground="#B7C6D9" FontSize="12"
+                                                     IsVisible="{Binding Info.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                          <Expander Header="更改标签" FontSize="11" HorizontalAlignment="Stretch">
+                                            <ComboBox Name="inlineCatalogTag" ItemsSource="{Binding CatalogTags}" SelectedItem="{Binding SelectedCatalogTag, Mode=TwoWay}"
+                                                      HorizontalAlignment="Stretch" MaxDropDownHeight="360" AutomationProperties.Name="更改 Mod 分类标签">
+                                              <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ModCatalogTag"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                          </Expander>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Spacing="6" VerticalAlignment="Center">
+                                          <v:AddonNodeEnableButton/>
+                                          <Button Name="inlineDetailsButton" Classes="compact" Content="详情 →" Click="OpenModDetails" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                      </Grid>
+                                    </Border>
+                                  </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                              </ItemsControl>
+                            </Expander>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="这个分类还没有 Mod。" IsVisible="{Binding VisibleChildren.Count, Converter={x:Static conv:CollectionConverters.IsEmpty}}"
+                               Foreground="#9AAFC9" FontSize="12" Margin="8,10"/>
+                  </StackPanel>
+                </Expander>
+              </Border>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <TextBlock Text="没有找到这个分类或对象，试试其他名称。" HorizontalAlignment="Center" Margin="20,40"
+        <TextBlock Text="没有找到匹配的分类、对象或 Mod。" HorizontalAlignment="Center" Margin="20,35" Foreground="#9AAFC9"
                    IsVisible="{Binding Sections.Count, Converter={x:Static conv:CollectionConverters.IsEmpty}}"/>
       </Panel>
     </ScrollViewer>

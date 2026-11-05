@@ -30,20 +30,53 @@ public sealed class ModOverlapGroup(ModTarget target, string names, int installe
     public void Show() => show();
 }
 
-public sealed record ModCategoryRow(IReadOnlyList<ModCategorySection> Sections, int Columns, ModCatalogViewModel? ExpandedCatalog);
-
-public sealed class ModCategorySection(ModCategoryFilter category, int enabledCount, string targets, Action expand, Action open) : ViewModelBase
+public sealed class ModTargetSection(string id, string name) : ViewModelBase
 {
-    public string Id => category.Id;
-    public int Count => category.Count;
-    public string EnabledText => $"已启用 {enabledCount} 个";
-    public string Targets => string.IsNullOrWhiteSpace(targets) ? category.Description : targets;
+    private IReadOnlyList<VpkAddonViewModel> _mods = [];
+    private IReadOnlyList<VpkAddonViewModel> _filteredMods = [];
+    public string Id => id;
+    public string Name => name;
+    public int Count { get; private set => this.RaiseAndSetIfChanged(ref field, value); }
+    public string EnabledText { get; private set => this.RaiseAndSetIfChanged(ref field, value); } = "";
+    public IReadOnlyList<VpkAddonViewModel> Mods => _mods;
+    public IReadOnlyList<VpkAddonViewModel> VisibleMods => IsExpanded ? _filteredMods : [];
+    public bool HasMatches => _filteredMods.Count > 0;
     public bool IsExpanded
     {
         get;
-        internal set { this.RaiseAndSetIfChanged(ref field, value); this.RaisePropertyChanged(nameof(ExpandText)); }
+        set { this.RaiseAndSetIfChanged(ref field, value); this.RaisePropertyChanged(nameof(VisibleMods)); }
     }
-    public string ExpandText => IsExpanded ? "收起 ▴" : "展开 ▾";
+
+    internal void Update(IReadOnlyList<(VpkAddon Addon, bool Enabled)> entries)
+    {
+        Count = entries.Count;
+        EnabledText = $"已启用 {entries.Count(entry => entry.Enabled)}";
+        _mods = entries.Select(entry => _mods.FirstOrDefault(model => model.Addon == entry.Addon)
+                ?? (VpkAddonViewModel)AddonNodeViewModel.Create(entry.Addon))
+            .OrderBy(model => model.DisplayTitle, StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
+    internal void Filter(string query)
+    {
+        var filtered = _mods.Where(model => Name.Contains(query, StringComparison.OrdinalIgnoreCase)
+            || model.DisplayTitle.Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (!_filteredMods.SequenceEqual(filtered))
+        {
+            _filteredMods = filtered;
+            this.RaisePropertyChanged(nameof(VisibleMods));
+        }
+        if (query.Length > 0 && HasMatches) IsExpanded = true;
+    }
+}
+
+public sealed class ModCategorySection(ModCategoryFilter category, Action open) : ViewModelBase
+{
+    public string Id => category.Id;
+    public int Count { get; internal set => this.RaiseAndSetIfChanged(ref field, value); }
+    public string EnabledText { get; internal set => this.RaiseAndSetIfChanged(ref field, value); } = "";
+    public bool IsExpanded { get; set => this.RaiseAndSetIfChanged(ref field, value); }
+    public IReadOnlyList<ModTargetSection> Children { get; internal set; } = [];
+    public IReadOnlyList<ModTargetSection> VisibleChildren { get; private set => this.RaiseAndSetIfChanged(ref field, value); } = [];
     public string Name => category.Name switch { "枪械 / 投掷" => "枪械与投掷", "感染者" => "特感与僵尸", "人物" => "生还者", _ => category.Name };
     public string Description => category.Name switch
     {
@@ -77,9 +110,18 @@ public sealed class ModCategorySection(ModCategoryFilter category, int enabledCo
         "脚本" => "M10,5 L1,16 10,27 13,24 6,16 13,8Z M22,5 L19,8 26,16 19,24 22,27 31,16Z",
         _ => "M2,3 H30 V29 H2Z M5,7 V10 H27 V7Z M5,14 V25 H13 V14Z M17,14 V17 H27 V14Z M17,21 V24 H27 V21Z"
     });
-    public bool Matches(string query) => string.IsNullOrWhiteSpace(query)
-        || (Name + " " + category.Name + " " + targets).Contains(query.Trim(), StringComparison.OrdinalIgnoreCase);
-    public void Expand() => expand();
+    public bool Matches(string query) => query.Length == 0 || Name.Contains(query, StringComparison.OrdinalIgnoreCase)
+        || category.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || VisibleChildren.Count > 0;
+    internal void Filter(string query)
+    {
+        var categoryMatches = Name.Contains(query, StringComparison.OrdinalIgnoreCase) || category.Name.Contains(query, StringComparison.OrdinalIgnoreCase);
+        foreach (var child in Children) child.Filter(categoryMatches ? "" : query);
+        var visible = Children.Where(child => child.HasMatches).ToArray();
+        if (!VisibleChildren.SequenceEqual(visible)) VisibleChildren = visible;
+        if (query.Length > 0 && Matches(query)) IsExpanded = true;
+        if (query.Length > 0 && categoryMatches)
+            foreach (var child in VisibleChildren) child.IsExpanded = true;
+    }
     public void Open() => open();
 }
 
@@ -96,9 +138,6 @@ public sealed class ModCatalogViewModel : ViewModelBase
     private bool _isOverview = true;
     private string _categorySearchText = "";
     private IReadOnlyList<ModCategorySection> _sections = [];
-    private string? _expandedCategoryId;
-    private string _inlineTargetId = "all";
-    private int _columns = 3;
     private ModCategoryFilter _selectedCategory = new("all", "全部模组", "按游戏内替换对象识别", 0);
 
     public ModCatalogViewModel(AddonRoot root)
@@ -128,6 +167,7 @@ public sealed class ModCatalogViewModel : ViewModelBase
     public IReadOnlyList<ModCategoryFilter> Categories { get; private set => this.RaiseAndSetIfChanged(ref field, value); }
     public IReadOnlyList<ModOverlapGroup> OverlapGroups { get; private set => this.RaiseAndSetIfChanged(ref field, value); } = [];
     public string Summary { get; private set => this.RaiseAndSetIfChanged(ref field, value); } = "正在读取模组…";
+    public string LibrarySummary { get; private set => this.RaiseAndSetIfChanged(ref field, value); } = "正在读取模组…";
     public bool HasEnabledOverlap { get; private set => this.RaiseAndSetIfChanged(ref field, value); }
     public bool HasOverlaps => OverlapGroups.Count > 0;
     public ModStorage Storage => _root.Storage;
@@ -149,45 +189,18 @@ public sealed class ModCatalogViewModel : ViewModelBase
         set
         {
             this.RaiseAndSetIfChanged(ref _categorySearchText, value);
-            this.RaisePropertyChanged(nameof(Sections));
-            this.RaisePropertyChanged(nameof(SectionRows));
+            FilterSections();
         }
     }
-    public IReadOnlyList<ModCategorySection> Sections => _sections.Where(section => section.Matches(CategorySearchText)).ToArray();
-    public int Columns
+    public IReadOnlyList<ModCategorySection> Sections { get; private set => this.RaiseAndSetIfChanged(ref field, value); } = [];
+    public void ExpandSections() { foreach (var section in _sections.Where(section => section.Count > 0)) section.IsExpanded = true; }
+    public void CollapseSections()
     {
-        get => _columns;
-        set { if (_columns == value) return; _columns = value; this.RaisePropertyChanged(nameof(SectionRows)); }
-    }
-    public IReadOnlyList<ModCategoryRow> SectionRows => Sections.Chunk(Columns)
-        .Select(row => new ModCategoryRow(row, Columns, row.Any(section => section.Id == _expandedCategoryId) ? this : null)).ToArray();
-    public ModCategorySection? ExpandedSection => _sections.FirstOrDefault(section => section.Id == _expandedCategoryId);
-    public IReadOnlyList<ModCategoryFilter> InlineTargets => _expandedCategoryId is not { } id ? [] :
-        new[] { new ModCategoryFilter("all", "全部", "这一分类的全部 Mod", ExpandedSection?.Count ?? 0) }
-            .Concat(_allCategories.Where(target => target.ParentId == id && target.Count > 0)).ToArray();
-    public ModCategoryFilter? InlineTarget
-    {
-        get => InlineTargets.FirstOrDefault(target => target.Id == _inlineTargetId) ?? InlineTargets.FirstOrDefault();
-        set
-        {
-            if (value is null || value.Id == _inlineTargetId) return;
-            _inlineTargetId = value.Id;
-            this.RaisePropertyChanged();
-            this.RaisePropertyChanged(nameof(InlineMods));
-        }
-    }
-    public IReadOnlyList<VpkAddonViewModel> InlineMods => _entries.Where(entry => CategoryId(entry.Addon) == _expandedCategoryId
-            && (_inlineTargetId == "all" || entry.Addon.CatalogTarget?.Id == _inlineTargetId))
-        .OrderBy(entry => _root.DownloadHistory.GetDisplayTitle(entry.Addon), StringComparer.OrdinalIgnoreCase)
-        .Select(entry => (VpkAddonViewModel)AddonNodeViewModel.Create(entry.Addon)).ToArray();
-
-    public void ExpandCategory(string id)
-    {
-        _expandedCategoryId = _expandedCategoryId == id ? null : id;
-        _inlineTargetId = "all";
         foreach (var section in _sections)
-            section.IsExpanded = section.Id == _expandedCategoryId;
-        NotifyInline();
+        {
+            section.IsExpanded = false;
+            foreach (var child in section.Children) child.IsExpanded = false;
+        }
     }
 
     public void OpenMod(VpkAddon addon)
@@ -362,6 +375,7 @@ public sealed class ModCatalogViewModel : ViewModelBase
             }).OrderByDescending(group => group.HasEnabledOverlap).ToArray();
         HasEnabledOverlap = OverlapGroups.Any(group => group.HasEnabledOverlap);
         Summary = $"模组 {_entries.Length}  ·  已识别 {_entries.Count(entry => entry.Addon.Inspection?.Targets.Count > 0)}  ·  重复对象 {OverlapGroups.Count}  ·  同时启用重叠 {OverlapGroups.Count(group => group.HasEnabledOverlap)}";
+        LibrarySummary = $"{_entries.Length} 个 Mod · {_entries.Count(entry => entry.Enabled)} 已启用";
         foreach (var name in new[] { "地图 / 战役", "界面", "声音", "特效", "脚本" })
             if (!categories.Any(category => category.Id == "category:" + name))
                 categories.Add(new("category:" + name, name, "按游戏中的替换对象浏览", 0, IsGroup: true));
@@ -371,26 +385,37 @@ public sealed class ModCatalogViewModel : ViewModelBase
         var preferred = new[] { "枪械 / 投掷", "感染者", "人物", "近战", "补给", "地图 / 战役", "界面", "声音", "特效", "脚本" };
         _sections = categories.Where(category => category.IsGroup || category.Id is "unknown" or "pending")
             .OrderBy(category => Array.IndexOf(preferred, category.Name) is var index && index >= 0 ? index : 99)
-            .Select(category => new ModCategorySection(category,
-                _entries.Count(entry => entry.Enabled && CategoryId(entry.Addon) == category.Id),
-                string.Join(" · ", categories.Where(target => target.ParentId == category.Id).OrderByDescending(target => target.Count).Select(target => target.Name)),
-                () => ExpandCategory(category.Id), () => { OnlyOverlaps = false; OpenCategory(category.Id); })
-                { IsExpanded = category.Id == _expandedCategoryId }).ToArray();
-        this.RaisePropertyChanged(nameof(Sections));
-        NotifyInline();
+            .Select(category =>
+            {
+                var section = _sections.FirstOrDefault(section => section.Id == category.Id)
+                    ?? new ModCategorySection(category, () => { OnlyOverlaps = false; OpenCategory(category.Id); });
+                section.Count = category.Count;
+                section.EnabledText = $"已启用 {_entries.Count(entry => entry.Enabled && CategoryId(entry.Addon) == category.Id)}";
+                var targetFilters = categories.Where(target => target.ParentId == category.Id).OrderBy(target => target.Name, StringComparer.Ordinal).ToArray();
+                if (targetFilters.Length == 0) targetFilters = [category];
+                section.Children = targetFilters.Select(target =>
+                {
+                    var child = section.Children.FirstOrDefault(child => child.Id == target.Id) ?? new ModTargetSection(target.Id, target.Name);
+                    child.Update(_entries.Where(entry => CategoryId(entry.Addon) == category.Id
+                            && (entry.Addon.CatalogTarget?.Id ?? category.Id) == target.Id)
+                        .Select(entry => (entry.Addon, entry.Enabled)).ToArray());
+                    return child;
+                }).ToArray();
+                return section;
+            }).ToArray();
+        FilterSections();
         Categories = categories.Where(category => category.ParentId is null || !_collapsedCategories.Contains(category.ParentId)).ToArray();
         this.RaisePropertyChanged(nameof(SelectedCategory));
         this.RaisePropertyChanged(nameof(HasOverlaps));
         CatalogChanged?.Invoke();
     }
 
-    private void NotifyInline()
+    private void FilterSections()
     {
-        this.RaisePropertyChanged(nameof(ExpandedSection));
-        this.RaisePropertyChanged(nameof(InlineTargets));
-        this.RaisePropertyChanged(nameof(InlineTarget));
-        this.RaisePropertyChanged(nameof(InlineMods));
-        this.RaisePropertyChanged(nameof(SectionRows));
+        var query = CategorySearchText.Trim();
+        foreach (var section in _sections) section.Filter(query);
+        var visible = _sections.Where(section => section.Matches(query)).ToArray();
+        if (!Sections.SequenceEqual(visible)) Sections = visible;
     }
 
     public static string DisplayName(ModTarget target) => target.Id switch
