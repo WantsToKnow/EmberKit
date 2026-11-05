@@ -8,8 +8,9 @@
     </Style>
     <Style Selector="Button.compact">
       <Setter Property="FontSize" Value="12"/>
-      <Setter Property="Padding" Value="10,6"/>
+      <Setter Property="Padding" Value="8,4"/>
     </Style>
+    <Style Selector="Button.rowAction"><Setter Property="FontSize" Value="11"/><Setter Property="Padding" Value="7,3"/><Setter Property="MinHeight" Value="24"/></Style>
   </UserControl.Styles>
   <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10" Margin="8,4,0,0">
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,0,10,0">
@@ -35,54 +36,65 @@
               <Border Background="#182333" BorderBrush="#30435B" BorderThickness="1" CornerRadius="10" Margin="0,0,10,10">
                 <Expander Name="categoryFolder" Classes="catalogCategory" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
                   <Expander.Header>
-                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12" Margin="4,5">
-                      <Border Background="#26394F" CornerRadius="9" Width="36" Height="36">
-                        <PathIcon Data="{Binding Icon}" Foreground="{Binding Accent}" Width="23" Height="23"/>
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="10" Margin="2,1">
+                      <Border Background="#26394F" CornerRadius="7" Width="28" Height="28">
+                        <PathIcon Data="{Binding Icon}" Foreground="{Binding Accent}" Width="19" Height="19"/>
                       </Border>
-                      <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                      <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
                       <TextBlock Grid.Column="2" Text="{Binding EnabledText}" FontSize="12" Foreground="#9AAFC9" VerticalAlignment="Center"/>
-                      <Border Grid.Column="3" Background="#26394F" CornerRadius="6" Padding="10,5" MinWidth="38" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding Count}" FontSize="16" FontWeight="SemiBold" Foreground="{Binding Accent}" HorizontalAlignment="Center"/>
+                      <Border Grid.Column="3" Background="#26394F" CornerRadius="5" Padding="8,3" MinWidth="32" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Count}" FontSize="14" FontWeight="SemiBold" Foreground="{Binding Accent}" HorizontalAlignment="Center"/>
                       </Border>
+                      <Button Grid.Column="4" Name="openCategoryPageButton" Classes="rowAction" Content="列表 ↗" Command="{Binding Open}"
+                              VerticalAlignment="Center" ToolTip.Tip="打开此分类的完整列表"/>
                     </Grid>
                   </Expander.Header>
-                  <StackPanel Margin="14,0,14,14" Spacing="7">
-                    <Button Name="openCategoryPageButton" Classes="compact" Content="完整列表 →" Command="{Binding Open}" HorizontalAlignment="Right"/>
+                  <StackPanel Margin="8,0,8,8" Spacing="0">
                     <ItemsControl ItemsSource="{Binding VisibleChildren}">
+                      <ItemsControl.ItemsPanel><ItemsPanelTemplate><v:ModTargetPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                       <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:ModTargetSection">
-                          <Border Background="#1D2B3E" CornerRadius="7" Margin="0,0,0,7">
+                          <Border Background="#1D2B3E" CornerRadius="7">
                             <Expander Name="targetFolder" Classes="catalogTarget" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
                               <Expander.Header>
-                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="14" Margin="2,2">
-                                  <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" Margin="0">
+                                  <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                   <TextBlock Grid.Column="1" Text="{Binding EnabledText}" FontSize="11" Foreground="#9AAFC9" VerticalAlignment="Center"/>
                                   <TextBlock Grid.Column="2" Text="{Binding Count}" FontSize="14" Foreground="#AFCBE9" MinWidth="25" TextAlignment="Right" VerticalAlignment="Center"/>
                                 </Grid>
                               </Expander.Header>
-                              <ItemsControl Name="inlineModList" ItemsSource="{Binding VisibleMods}" Margin="8,0,8,4">
+                              <ItemsControl Name="inlineModList" ItemsSource="{Binding VisibleMods}" Margin="6,0,6,5">
                                 <ItemsControl.ItemTemplate>
                                   <DataTemplate x:DataType="vm:VpkAddonViewModel">
-                                    <Border Name="inlineModCard" Background="#25354A" CornerRadius="7" Padding="12" Margin="0,0,0,6">
-                                      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                                        <v:AddonIconView ImageSize="72" SpecialIconSize="0" IsVisible="{Binding ShouldShowImage}" VerticalAlignment="Top"/>
-                                        <StackPanel Grid.Column="1" Spacing="4">
-                                          <TextBlock Text="{Binding DisplayTitle}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/>
-                                          <TextBlock Text="{Binding CatalogLabel}" Foreground="#95BDF9" FontSize="11" TextWrapping="Wrap"/>
-                                          <TextBlock Text="{Binding Info.Author, StringFormat='作者：{0}'}" Foreground="#B7C6D9" FontSize="11"
+                                    <Border Name="inlineModCard" Background="#25354A" CornerRadius="6" Padding="9" Margin="0,0,0,5">
+                                      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                        <v:AddonIconView ImageSize="48" SpecialIconSize="0" IsVisible="{Binding ShouldShowImage}" VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                                          <TextBlock Text="{Binding DisplayTitle}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding DisplayTitle}"/>
+                                          <TextBlock Text="{Binding PreviewDescription}" TextTrimming="CharacterEllipsis" Foreground="#C3D1E2" FontSize="12" ToolTip.Tip="{Binding PreviewDescription}"
+                                                     IsVisible="{Binding PreviewDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                          <TextBlock Text="{Binding Info.Author, StringFormat='作者：{0}'}" Foreground="#91A8C3" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Info.Author}"
                                                      IsVisible="{Binding Info.Author, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                                          <TextBlock Text="{Binding Info.Description}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" Foreground="#B7C6D9" FontSize="12"
-                                                     IsVisible="{Binding Info.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                                          <Expander Header="更改标签" FontSize="11" HorizontalAlignment="Stretch">
-                                            <ComboBox Name="inlineCatalogTag" ItemsSource="{Binding CatalogTags}" SelectedItem="{Binding SelectedCatalogTag, Mode=TwoWay}"
-                                                      HorizontalAlignment="Stretch" MaxDropDownHeight="360" AutomationProperties.Name="更改 Mod 分类标签">
-                                              <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ModCatalogTag"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
-                                            </ComboBox>
-                                          </Expander>
                                         </StackPanel>
-                                        <StackPanel Grid.Column="2" Spacing="6" VerticalAlignment="Center">
+                                        <StackPanel Grid.Column="2" Spacing="1" VerticalAlignment="Center">
                                           <v:AddonNodeEnableButton/>
-                                          <Button Name="inlineDetailsButton" Classes="compact" Content="详情 →" Click="OpenModDetails" HorizontalAlignment="Center"/>
+                                          <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center">
+                                            <Button Name="inlineTagButton" Classes="rowAction" Content="标签" Click="PrepareTagEditor" ToolTip.Tip="{Binding CatalogLabel}">
+                                              <Button.Flyout>
+                                                <Flyout Placement="BottomEdgeAlignedRight">
+                                                  <StackPanel Spacing="8" Width="300">
+                                                    <TextBlock Text="分类标签 · 唯一归属" FontSize="14" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding CatalogLabel}" Foreground="#9AAFC9" TextWrapping="Wrap" FontSize="12"/>
+                                                    <ComboBox Name="inlineCatalogTag" ItemsSource="{Binding CatalogTags}" SelectedItem="{Binding SelectedCatalogTag, Mode=TwoWay}"
+                                                              HorizontalAlignment="Stretch" MaxDropDownHeight="300" AutomationProperties.Name="更改 Mod 分类标签">
+                                                      <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ModCatalogTag"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+                                                    </ComboBox>
+                                                  </StackPanel>
+                                                </Flyout>
+                                              </Button.Flyout>
+                                            </Button>
+                                            <Button Name="inlineDetailsButton" Classes="rowAction" Content="详情 ↗" Click="OpenModDetails"/>
+                                          </StackPanel>
                                         </StackPanel>
                                       </Grid>
                                     </Border>

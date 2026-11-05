@@ -30,7 +30,7 @@ internal static partial class Program
             ("医疗包 应急款", "models/weapons/melee/v_medkit.mdl"), ("肾上腺素", "models/weapons/melee/v_adrenaline.mdl"),
             ("夜色战役", "maps/c1_sample.bsp"), ("简洁 HUD", "resource/ui/demo.res"),
             ("安全屋音乐", "sound/music/safe/demo.wav"), ("曳光效果", "particles/demo.pcf"),
-            ("手枪 沙色外观", "models/v_models/v_pist_pistol.mdl")
+            ("手枪 沙色外观 · Tactical Pistol / Custom Grips", "models/v_models/v_pist_pistol.mdl")
         };
         var mods = new List<LocalVpkAddon>();
         using (root.BlockAutoCheck())
@@ -52,6 +52,12 @@ internal static partial class Program
             using var image = bitmap.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
             package.AddFile("addonimage.jpg", image.ToArray());
             package.Write(mods[0].VpkFilePath!);
+        }
+        using (var package = new Package())
+        {
+            package.AddFile(samples[1].File, [1, 2, 3]);
+            package.AddFile("addoninfo.txt", Encoding.UTF8.GetBytes($"\"AddonInfo\" {{ \"addontitle\" \"{samples[1].Name}\" \"addondescription\" \"AK47 战术黑。\" }}"));
+            package.Write(mods[1].VpkFilePath!);
         }
         WriteVpk(mods[12].VpkFilePath!, samples[12].Name, samples[12].File, "models/v_models/v_rif_m16a2.mdl", "resource/ui/map.res", "sound/music/map.wav");
         Complete(Task.WhenAll(mods.Select(node => node.CheckVpkValidity())));
@@ -114,7 +120,12 @@ internal static partial class Program
         var pistol = guns.Children.Single(target => target.Id == "pistol");
         var hunter = infected.Children.Single(target => target.Id == "infected:hunter");
         ClickHeader(CategoryFolder(guns.Id)); PumpFrames();
+        var oppositeBefore = TargetFolder("m16").TranslatePoint(default, CategoryFolder(guns.Id))!.Value;
+        var akBefore = TargetFolder(ak.Id).TranslatePoint(default, CategoryFolder(guns.Id))!.Value;
         ClickHeader(TargetFolder(ak.Id)); PumpFrames();
+        var oppositeAfter = TargetFolder("m16").TranslatePoint(default, CategoryFolder(guns.Id))!.Value;
+        Check(oppositeBefore.X > akBefore.X + 400 && Math.Abs(oppositeAfter.Y - oppositeBefore.Y) < 1,
+            "wide layouts use two independent lanes so expanding AK does not create blank rows in the opposite lane");
         ClickHeader(TargetFolder(pistol.Id)); PumpFrames();
         Check(guns.IsExpanded && ak.IsExpanded && pistol.IsExpanded && ak.VisibleMods.Count == 2 && pistol.VisibleMods.Count == 1
             && model.ModCatalog.IsOverview && window.OwnedWindows.Count == 0,
@@ -141,20 +152,35 @@ internal static partial class Program
         Pump(() => inlineItems.Single(item => item.Addon == mods[0]).Image is not null);
         Check(inlineItems.Single(item => item.Addon == mods[0]).ShouldShowImage && !inlineItems.Single(item => item.Addon == mods[1]).ShouldShowImage,
             "inline mods reuse available thumbnails and omit image placeholders when no thumbnail exists");
+        Check(inlineItems.Single(item => item.Addon == mods[1]).Info?.Description is not null
+            && inlineItems.Single(item => item.Addon == mods[1]).PreviewDescription is null
+            && !string.IsNullOrEmpty(inlineItems.Single(item => item.Addon == mods[0]).PreviewDescription),
+            "preview rows omit a repeated title despite punctuation differences and retain useful descriptions");
+        Check(window.GetVisualDescendants().OfType<Border>().Where(control => control.Name == "inlineModCard" && control.IsEffectivelyVisible)
+            .All(control => control.Bounds.Height <= 96), "compact rows keep titles, summaries, thumbnails and switches within 96 pixels");
         categories.Offset = default; window.MouseMove(new Point(4, 4)); PumpFrames();
         using (var frame = window.CaptureRenderedFrame()!) frame.Save(Path.Combine(output, "category-inline-preview.png"));
         window.Width = 1100; window.Height = 760; PumpFrames();
         categories.Offset = default; PumpFrames();
+        Check(Math.Abs(TargetFolder(ak.Id).TranslatePoint(default, CategoryFolder(guns.Id))!.Value.X
+            - TargetFolder("m16").TranslatePoint(default, CategoryFolder(guns.Id))!.Value.X) < 1
+            && ak.IsExpanded && pistol.IsExpanded && hunter.IsExpanded,
+            "narrow windows return to one lane without losing expanded objects");
         Check(window.GetVisualDescendants().OfType<Border>().Where(control => control.Name == "inlineModCard" && control.IsEffectivelyVisible)
             .All(control => control.Bounds.Width > 450 && control.TranslatePoint(default, window) is { } point && point.X + control.Bounds.Width <= window.Bounds.Width),
             "expanded mod summaries and enable controls fit the compact window");
         using (var frame = window.CaptureRenderedFrame()!) frame.Save(Path.Combine(output, "category-inline-compact.png"));
         window.Width = 1600; window.Height = 1040; PumpFrames();
-        var tagExpander = window.GetVisualDescendants().OfType<Expander>().Single(control => control.Header as string == "更改标签" && control.DataContext is VpkAddonViewModel item && item.Addon == mods[0]);
-        tagExpander.IsExpanded = true; PumpFrames();
-        var edit = window.GetVisualDescendants().OfType<ComboBox>().Single(control => control.Name == "inlineCatalogTag" && control.DataContext is VpkAddonViewModel item && item.Addon == mods[0]);
+        var tagButton = window.GetVisualDescendants().OfType<Button>().Single(control => control.Name == "inlineTagButton" && control.DataContext is VpkAddonViewModel item && item.Addon == mods[0]);
+        Click(tagButton); PumpFrames();
+        var tagFlyout = (Flyout)tagButton.Flyout!;
+        var editor = (Control)tagFlyout.Content!;
+        var edit = editor.GetVisualDescendants().OfType<ComboBox>().Single(control => control.Name == "inlineCatalogTag");
+        Check(tagFlyout.IsOpen && editor.DataContext is VpkAddonViewModel item && item.Addon == mods[0]
+            && model.ModCatalog.IsOverview, "the small tag button opens a local editor without navigating or reserving a full row");
         var evidence = mods[0].Inspection;
         edit.SelectedItem = VpkAddonViewModel.CatalogTags.Single(tag => tag.Id == "infected:hunter");
+        tagFlyout.Hide();
         Pump(() => model.ModCatalog.Sections.Single(section => section.Id == "category:枪械 / 投掷").Count == 4);
         Check(mods[0].CatalogTargetId == "infected:hunter" && ak.Mods.Count == 1 && hunter.Mods.Count == 2
             && model.ModCatalog.Sections.Single(section => section.Id == "category:感染者").Count == 3
@@ -184,7 +210,7 @@ internal static partial class Program
         Click(openCategory);
         Pump(() => model.ModCatalog.IsBrowsing && model.CurrentNodes.Count == 5 && !model.IsSearching);
         PumpFrames();
-        Check(!overview.IsEffectivelyVisible && model.CurrentNodes.All(node => model.ModCatalog.Matches(node))
+        Check(!overview.IsEffectivelyVisible && guns.IsExpanded && model.CurrentNodes.All(node => model.ModCatalog.Matches(node))
             && model.ModCatalog.Categories.Any(category => category.Id == "melee:tonfa" && category.Name.Contains("警棍")),
             "opening a category fills the mod workspace with its actual mods and retains readable target labels");
         var modWorkspace = window.GetVisualDescendants().OfType<Grid>().Single(control => control.Name == "modWorkspace");

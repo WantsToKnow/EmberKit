@@ -11,6 +11,12 @@ public partial class ModCategoryHomeView : UserControl
         InitializeComponent();
     }
 
+    private void PrepareTagEditor(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Flyout: Flyout { Content: Control editor } } button)
+            editor.DataContext = button.DataContext;
+    }
+
     private void OpenModDetails(object? sender, RoutedEventArgs e)
     {
         if (sender is Button { DataContext: VpkAddonViewModel { Addon: { } addon } } && DataContext is ModCatalogViewModel catalog)

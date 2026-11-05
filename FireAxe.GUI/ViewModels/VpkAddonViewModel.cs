@@ -29,6 +29,12 @@ public abstract class VpkAddonViewModel : AddonNodeViewModel
         ? target.Category + " · " + ModCatalogViewModel.DisplayName(target) + (Addon.CatalogTargetId is null ? "（自动）" : "（手动）")
         : Addon?.Inspection is { Error: null } ? "未识别 / 其他" : "未读取 / 读取失败";
 
+    public string? PreviewDescription => Info?.Description is { } description
+        && string.Equals(WithoutPunctuation(description), WithoutPunctuation(DisplayTitle), StringComparison.OrdinalIgnoreCase)
+            ? null : Info?.Description;
+
+    private static string WithoutPunctuation(string text) => string.Concat(text.Where(char.IsLetterOrDigit));
+
     private VpkAddonInfo? _info = null;
 
     private readonly ObservableAsPropertyHelper<VpkAddonConflictingDetailsViewModel?> _conflictingDetailsViewModel;
@@ -60,6 +66,8 @@ public abstract class VpkAddonViewModel : AddonNodeViewModel
             this.RaisePropertyChanged(nameof(CatalogLabel));
             this.RaisePropertyChanged(nameof(SelectedCatalogTag));
         }).DisposeWith(disposables);
+        this.WhenAnyValue(model => model.Info, model => model.DisplayTitle)
+            .Subscribe(_ => this.RaisePropertyChanged(nameof(PreviewDescription))).DisposeWith(disposables);
     }
 
     protected override void OnRefresh(CancellationToken cancellationToken)
