@@ -57,6 +57,7 @@ internal static partial class Program
             var row = reopened.DownloadResults.Single(result => result.WorkshopId == "工坊 ID：" + id);
             var button = removalWindow.GetVisualDescendants().OfType<Button>()
                 .Single(button => button.IsEffectivelyVisible && button.DataContext == row && button.Command == row.RemoveRecordCommand);
+            button.BringIntoView(); PumpFrames();
             var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), removalWindow)!.Value;
             removalWindow.MouseDown(point, MouseButton.Left); removalWindow.MouseUp(point, MouseButton.Left);
             Pump(() => reopened.DownloadResults.All(result => result.WorkshopId != row.WorkshopId));

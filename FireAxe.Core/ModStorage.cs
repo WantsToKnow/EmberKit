@@ -344,6 +344,7 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
             {
                 var keep = duplicateGroup.OrderByDescending(node => node is WorkshopVpkAddon).First();
                 keep.IsEnabled = duplicateGroup.Any(node => node.IsEnabled);
+                keep.CatalogTargetId ??= duplicateGroup.Select(node => node.CatalogTargetId).FirstOrDefault(id => id is not null);
                 keep.OriginalPaths = duplicateGroup.SelectMany(node => node.OriginalPaths).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
                 foreach (var duplicate in duplicateGroup.Where(node => node != keep))
                 {

@@ -50,7 +50,7 @@ public partial class AddonNodeExplorerView : ReactiveUserControl<AddonNodeExplor
         this.WhenAnyValue(x => x.IsAddonNodeViewEnabled)
             .Subscribe(isAddonNodeViewEnabled =>
             {
-                if (isAddonNodeViewEnabled)
+                if (isAddonNodeViewEnabled && ViewModel?.ShowModDetails == true)
                 {
                     rootGrid.ColumnDefinitions[AddonNodeViewColumnIndex].MaxWidth = double.PositiveInfinity;
                 }
@@ -93,6 +93,10 @@ public partial class AddonNodeExplorerView : ReactiveUserControl<AddonNodeExplor
 
     private void ConnectViewModel(AddonNodeExplorerViewModel viewModel, CompositeDisposable disposables)
     {
+        if (IsSingleSelectionEnabled) viewModel.ModCatalog.ShowAll();
+        viewModel.WhenAnyValue(model => model.ShowModDetails)
+            .Subscribe(show => rootGrid.ColumnDefinitions[AddonNodeViewColumnIndex].MaxWidth = show && IsAddonNodeViewEnabled ? double.PositiveInfinity : 0)
+            .DisposeWith(disposables);
         viewModel.LaunchGameInteraction.RegisterHandler(async context =>
         {
             var model = new WorkshopTransferViewModel(viewModel.AddonRoot, 5);

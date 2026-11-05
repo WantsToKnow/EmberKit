@@ -82,6 +82,8 @@ internal static partial class Program
         Check(ReferenceEquals(explorer.KillFeedback, transfer.KillFeedback), "main and workshop launch controls share the same feedback settings object");
         var window = new Window { Width = 1100, Height = 680, Content = new AddonNodeExplorerView { DataContext = explorer } };
         window.Show(); PumpFrames();
+        window.GetVisualDescendants().OfType<Expander>().Single(control => control.Name == "launchSettingsExpander").IsExpanded = true;
+        PumpFrames();
         var enabled = window.GetVisualDescendants().OfType<CheckBox>().Single(control => control.Name == "killFeedbackCheckBox");
         var scope = window.GetVisualDescendants().OfType<ComboBox>().Single(control => control.Name == "killFeedbackScope");
         Check(enabled.IsChecked == false && scope.SelectedIndex == 1 && !scope.IsEffectivelyEnabled,

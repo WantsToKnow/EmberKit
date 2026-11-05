@@ -18,6 +18,12 @@
     </StackPanel.Styles>
     <Border Background="#1A2231" CornerRadius="7" Padding="12" Margin="0,0,0,14">
       <StackPanel Spacing="8">
+        <TextBlock Text="分类标签（唯一归属）" FontSize="16" FontWeight="SemiBold"/>
+        <TextBlock Text="{Binding CatalogLabel}" Foreground="#95BDF9" TextWrapping="Wrap"/>
+        <ComboBox ItemsSource="{Binding CatalogTags}" SelectedItem="{Binding SelectedCatalogTag, Mode=TwoWay}"
+                  HorizontalAlignment="Stretch" MaxDropDownHeight="360" AutomationProperties.Name="更改 Mod 分类标签">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ModCatalogTag"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
         <TextBlock Text="替换对象 / 分类依据" FontSize="16" FontWeight="SemiBold"/>
         <TextBlock Text="{Binding Addon.Inspection.Summary}" Foreground="#95BDF9" TextWrapping="Wrap"/>
         <TextBlock Text="{Binding Addon.DeploymentStatus}" Foreground="#FFCE8E" TextWrapping="Wrap"/>

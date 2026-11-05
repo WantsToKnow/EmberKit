@@ -18,9 +18,9 @@ internal static partial class Program
     private static void CheckProminentLaunch(Window window, AddonNodeExplorerViewModel explorer)
     {
         var button = window.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "launchGameButton");
-        Check(button.IsEffectivelyVisible && button.Bounds.Width >= 220 && button.Bounds.Height >= 68
+        Check(button.IsEffectivelyVisible && button.Bounds.Width >= 180 && button.Bounds.Height >= 48
             && ReferenceEquals(button.Command, explorer.LaunchGameCommand),
-            "the main window exposes a large launch button bound to the assistant launch action");
+            "the compact sidebar exposes a visible launch button bound to the assistant launch action");
         var requests = 0;
         // Intercept the UI action: this check must never discover or launch an installed game.
         using var launch = explorer.LaunchGameInteraction.RegisterHandler(context =>

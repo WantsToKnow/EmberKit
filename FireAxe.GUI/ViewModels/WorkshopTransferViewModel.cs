@@ -101,9 +101,22 @@ public sealed class WorkshopTransferViewModel : ViewModelBase, IDisposable
         ApplyInMainMenuCommand = ReactiveCommand.CreateFromTask(() => RunAsync(async token =>
         {
             SelectedTab = 5;
-            GameConnectionStatus = "正在连接游戏并应用 Mod…";
-            Status = await _root.Storage.ReloadInMainMenuAsync(CreateGameConsole(), token);
-            GameConnectionStatus = "已收到游戏重新挂载的回执，可以进入新地图测试。";
+            var console = CreateGameConsole();
+            if (ModStorage.IsGameRunning(console.GameDirectory))
+            {
+                Status = GameConnectionStatus = "正在连接游戏，返回主菜单并重载 Mod…";
+                Status = await _root.Storage.ReloadInMainMenuAsync(console, token);
+                GameConnectionStatus = "已收到游戏重新挂载的回执，可以进入新地图测试。";
+            }
+            else
+            {
+                Status = "游戏未运行，正在应用 Mod 开关和本地入口…";
+                var result = await _root.Storage.RefreshAsync(token);
+                Report = string.Join("\n", result.Warnings);
+                Status = result.Pending || result.Warnings.Length > 0 ? _root.Storage.Status
+                    : "Mod 已应用；下次启动游戏时加载。";
+                GameConnectionStatus = Status;
+            }
         }), ready);
         ShowMainMenuReloadCommand = ReactiveCommand.Create(() => { SelectedTab = 5; });
         CancelCommand = ReactiveCommand.Create(() => _operation?.Cancel());

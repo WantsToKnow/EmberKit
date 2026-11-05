@@ -1,0 +1,201 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
+using Avalonia.VisualTree;
+using FireAxe;
+using FireAxe.ViewModels;
+using FireAxe.Views;
+using SteamDatabase.ValvePak;
+using System.Text;
+
+internal static partial class Program
+{
+    private static void CheckCategoryDashboard(string output)
+    {
+        var game = Path.Combine(output, "cat-" + Guid.NewGuid().ToString("N")[..6]);
+        var addons = Path.Combine(game, "left4dead2", "addons");
+        Directory.CreateDirectory(addons);
+        File.WriteAllText(Path.Combine(game, "left4dead2.exe"), "fixture, never executed");
+        var root = new AddonRoot { DirectoryPath = addons, GamePath = game, TaskScheduler = TaskScheduler.FromCurrentSynchronizationContext(),
+            DownloadService = new FixtureDownloads([]) };
+        var samples = new (string Name, string File)[]
+        {
+            ("AK-47 木质经典", "models/v_models/v_rif_ak47.mdl"), ("AK-47 战术黑", "models/v_models/v_rif_ak47.mdl"),
+            ("M4A1 沙色涂装", "models/v_models/v_rif_m16a2.mdl"), ("SG552 城市行动", "models/v_models/v_rif_sg552.mdl"),
+            ("Hunter 暗夜外观", "models/infected/hunter.mdl"), ("Tank 重装外观", "models/infected/hulk.mdl"),
+            ("Nick 都市便服", "models/survivors/survivor_gambler.mdl"), ("Zoey 经典外套", "models/survivors/survivor_teenangst.mdl"),
+            ("武士刀 黑曜", "models/weapons/melee/v_katana.mdl"), ("警棍 简约", "models/weapons/melee/v_tonfa.mdl"),
+            ("医疗包 应急款", "models/weapons/melee/v_medkit.mdl"), ("肾上腺素", "models/weapons/melee/v_adrenaline.mdl"),
+            ("夜色战役", "maps/c1_sample.bsp"), ("简洁 HUD", "resource/ui/demo.res"),
+            ("安全屋音乐", "sound/music/safe/demo.wav"), ("曳光效果", "particles/demo.pcf")
+        };
+        var mods = new List<LocalVpkAddon>();
+        using (root.BlockAutoCheck())
+            for (int i = 0; i < samples.Length; i++)
+            {
+                var node = AddonNode.Create<LocalVpkAddon>(root); node.Name = "demo-" + i; node.IsEnabled = i % 3 != 1;
+                WriteVpk(node.VpkFilePath!, samples[i].Name, samples[i].File); mods.Add(node);
+            }
+        using (var package = new Package())
+        {
+            foreach (var resource in new[] { samples[0].File, "models/survivors/survivor_coach.mdl", "resource/ui/weapon.res", "scripts/demo.nut", "sound/music/demo.wav" })
+                package.AddFile(resource, [1, 2, 3]);
+            package.AddFile("addoninfo.txt", Encoding.UTF8.GetBytes($"\"AddonInfo\" {{ \"addontitle\" \"{samples[0].Name}\" \"addonauthor\" \"EmberKit 测试素材\" \"addondescription\" \"经典木质外观，附带图标、音效和脚本；列表只归入一个分类。\" }}"));
+            using var bitmap = new SkiaSharp.SKBitmap(128, 88);
+            using var canvas = new SkiaSharp.SKCanvas(bitmap);
+            canvas.Clear(new SkiaSharp.SKColor(37, 63, 86));
+            using var paint = new SkiaSharp.SKPaint { Color = new SkiaSharp.SKColor(177, 213, 234) };
+            canvas.DrawRoundRect(22, 30, 84, 15, 3, 3, paint); canvas.DrawRect(48, 40, 14, 24, paint);
+            using var image = bitmap.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+            package.AddFile("addonimage.jpg", image.ToArray());
+            package.Write(mods[0].VpkFilePath!);
+        }
+        WriteVpk(mods[12].VpkFilePath!, samples[12].Name, samples[12].File, "models/v_models/v_rif_m16a2.mdl", "resource/ui/map.res", "sound/music/map.wav");
+        Complete(Task.WhenAll(mods.Select(node => node.CheckVpkValidity())));
+        Complete(root.Storage.RefreshAsync());
+        using var model = new AddonNodeExplorerViewModel(root);
+        var view = new AddonNodeExplorerView { ViewModel = model };
+        var window = new Window { Width = 1600, Height = 1040, Content = view };
+        window.Show(); PumpFrames();
+        Pump(() => model.ModCatalog.Sections.Any(section => section.Id == "category:枪械 / 投掷" && section.Count == 4));
+        Check(mods[0].Inspection!.Targets.Count >= 5 && mods[0].CatalogTarget?.Id == "ak47" && mods[12].CatalogTarget?.Id == "maps"
+            && model.ModCatalog.Sections.Sum(section => section.Count) == mods.Count
+            && model.ModCatalog.Categories.Where(category => category.ParentId is not null || category.Id is "unknown" or "pending").Sum(category => category.Count) == mods.Count,
+            "bundled models, HUD, sounds and scripts have one browse category and one target per mod, while retaining all inspection evidence");
+        var overview = window.GetVisualDescendants().OfType<Border>().Single(control => control.Name == "categoryOverview");
+        var tools = window.GetVisualDescendants().OfType<ScrollViewer>().Single(control => control.Name == "toolScrollViewer");
+        var categories = window.GetVisualDescendants().OfType<ScrollViewer>().Single(control => control.Name == "categoryScrollViewer");
+        Check(model.ModCatalog.IsOverview && overview.IsEffectivelyVisible && overview.Bounds.Width > window.Bounds.Width * 0.7
+            && overview.Bounds.Height > window.Bounds.Height * 0.9 && !model.ShowModDetails
+            && tools.TranslatePoint(default, window)!.Value.X < overview.TranslatePoint(default, window)!.Value.X
+            && tools.VerticalScrollBarVisibility == Avalonia.Controls.Primitives.ScrollBarVisibility.Visible
+            && categories.VerticalScrollBarVisibility == Avalonia.Controls.Primitives.ScrollBarVisibility.Visible,
+            "tools and the full-height category workspace sit side by side with independent visible scrollbars");
+        using (var frame = window.CaptureRenderedFrame()!) frame.Save(Path.Combine(output, "category-dashboard-preview.png"));
+        var layout = window.GetVisualDescendants().OfType<Grid>().Single(control => control.Name == "workspaceLayout");
+        var splitter = window.GetVisualDescendants().OfType<GridSplitter>().Single(control => control.Name == "workspaceSplitter");
+        var initialToolsWidth = layout.ColumnDefinitions[0].ActualWidth;
+        var initialWorkspaceWidth = overview.Bounds.Width;
+        Drag(splitter, 60);
+        Check(layout.ColumnDefinitions[0].ActualWidth > initialToolsWidth + 30 && overview.Bounds.Width < initialWorkspaceWidth,
+            "dragging the main divider reallocates width between the compact tools and category workspace");
+        Drag(splitter, -60);
+        window.Width = 1100; window.Height = 760; PumpFrames();
+        var compactCards = window.GetVisualDescendants().OfType<Button>().Where(button => button.DataContext is ModCategorySection).ToArray();
+        Check(compactCards.Length >= 10 && compactCards.All(button => button.Bounds.Width >= 300
+            && button.TranslatePoint(default, window) is { } position && position.X >= 0
+            && position.X + button.Bounds.Width <= window.Bounds.Width),
+            "category cards adapt to a compact window without horizontal clipping or tiny navigation targets");
+        using (var frame = window.CaptureRenderedFrame()!) frame.Save(Path.Combine(output, "category-dashboard-compact.png"));
+        var startup = window.GetVisualDescendants().OfType<Expander>().Single(control => control.Name == "launchSettingsExpander");
+        window.Height = 520; startup.IsExpanded = true; PumpFrames();
+        var oldCategoriesOffset = categories.Offset;
+        tools.Offset = new Vector(0, 100); PumpFrames();
+        var toolsOffset = tools.Offset;
+        categories.Offset = new Vector(0, 100); PumpFrames();
+        Check(toolsOffset.Y > 0 && oldCategoriesOffset.Y == 0 && categories.Offset.Y > 0 && tools.Offset == toolsOffset,
+            "each side scrolls independently without moving the other pane");
+        tools.Offset = categories.Offset = default; startup.IsExpanded = false;
+        window.Width = 1600; window.Height = 1040; PumpFrames();
+        model.ModCatalog.CategorySearchText = "Hunter"; PumpFrames();
+        Check(model.ModCatalog.Sections.Count == 1 && model.ModCatalog.Sections[0].Id == "category:感染者",
+            "the large category search finds an infected by its concrete target name");
+        model.ModCatalog.CategorySearchText = ""; PumpFrames();
+        var weapons = window.GetVisualDescendants().OfType<Button>().Single(button => button.DataContext is ModCategorySection { Id: "category:枪械 / 投掷" });
+        Click(weapons);
+        PumpFrames();
+        var inline = window.GetVisualDescendants().OfType<Border>().Single(control => control.Name == "inlineCategoryPanel" && control.IsEffectivelyVisible);
+        Check(model.ModCatalog.IsOverview && overview.IsEffectivelyVisible && inline.IsEffectivelyVisible && model.ModCatalog.InlineMods.Count == 4
+            && window.OwnedWindows.Count == 0, "clicking a category expands its mods below that row without navigating or opening a window");
+        var inlineList = window.GetVisualDescendants().OfType<ListBox>().Single(control => control.Name == "inlineTargetList" && control.IsEffectivelyVisible);
+        inlineList.SelectedItem = model.ModCatalog.InlineTargets.Single(target => target.Id == "ak47"); PumpFrames();
+        Check(model.ModCatalog.IsOverview && model.ModCatalog.InlineMods.Count == 2
+            && model.ModCatalog.InlineMods.All(item => item.Addon!.CatalogTarget?.Id == "ak47"), "concrete target tags filter the inline list without navigation");
+        var toggle = inline.GetVisualDescendants().OfType<ToggleSwitch>().Single(control => control.DataContext is VpkAddonViewModel item && item.Addon == mods[0]);
+        var enabledBefore = mods[0].IsEnabled;
+        Click(toggle);
+        Pump(() => mods[0].IsEnabled != enabledBefore); PumpFrames();
+        Check(model.ModCatalog.IsOverview && mods[0].IsEnabled != enabledBefore, "the inline enable switch updates the same mod state as the detail page");
+        inline = window.GetVisualDescendants().OfType<Border>().Single(control => control.Name == "inlineCategoryPanel" && control.IsEffectivelyVisible);
+        var inlineItems = inline.GetVisualDescendants().OfType<AddonNodeEnableButton>().Select(control => (VpkAddonViewModel)control.DataContext!).ToArray();
+        Pump(() => inlineItems.Single(item => item.Addon == mods[0]).Image is not null);
+        Check(inlineItems.Single(item => item.Addon == mods[0]).ShouldShowImage && !inlineItems.Single(item => item.Addon == mods[1]).ShouldShowImage,
+            "inline mods reuse available thumbnails and omit image placeholders when no thumbnail exists");
+        inline.BringIntoView(); window.MouseMove(new Point(4, 4)); PumpFrames();
+        using (var frame = window.CaptureRenderedFrame()!) frame.Save(Path.Combine(output, "category-inline-preview.png"));
+        window.Width = 1100; window.Height = 760; PumpFrames();
+        inline = window.GetVisualDescendants().OfType<Border>().Single(control => control.Name == "inlineCategoryPanel" && control.IsEffectivelyVisible);
+        inline.BringIntoView(); PumpFrames();
+        using (var frame = window.CaptureRenderedFrame()!) frame.Save(Path.Combine(output, "category-inline-compact.png"));
+        window.Width = 1600; window.Height = 1040; PumpFrames();
+        var tagExpander = window.GetVisualDescendants().OfType<Expander>().Single(control => control.Header as string == "更改标签" && control.DataContext is VpkAddonViewModel item && item.Addon == mods[0]);
+        tagExpander.IsExpanded = true; PumpFrames();
+        var edit = window.GetVisualDescendants().OfType<ComboBox>().Single(control => control.Name == "inlineCatalogTag" && control.DataContext is VpkAddonViewModel item && item.Addon == mods[0]);
+        var evidence = mods[0].Inspection;
+        edit.SelectedItem = VpkAddonViewModel.CatalogTags.Single(tag => tag.Id == "infected:hunter");
+        Pump(() => model.ModCatalog.Sections.Single(section => section.Id == "category:枪械 / 投掷").Count == 3);
+        Check(mods[0].CatalogTargetId == "infected:hunter" && model.ModCatalog.InlineMods.Count == 1
+            && model.ModCatalog.Sections.Single(section => section.Id == "category:感染者").Count == 3
+            && model.ModCatalog.Sections.Sum(section => section.Count) == mods.Count && mods[0].Inspection == evidence,
+            "manual tag edits move a mod out of its old category without duplicating it or altering real conflict evidence");
+        var saved = AddonRoot.Deserialize(AddonRoot.Serialize(root.CreateSave()));
+        var restored = new AddonRoot { DirectoryPath = Path.Combine(game, "saved-check"), TaskScheduler = TaskScheduler.FromCurrentSynchronizationContext() };
+        using (restored.BlockAutoCheck()) restored.LoadSave(saved);
+        Check(restored.GetDescendants().OfType<VpkAddon>().Single(node => node.Id == mods[0].Id).CatalogTargetId == "infected:hunter",
+            "manual category tags survive serialized library save and reload");
+        Complete(restored.DisposeAsync().AsTask());
+        Complete(mods[0].CheckVpkValidity());
+        Check(mods[0].CatalogTarget?.Id == "infected:hunter", "rescanning a VPK preserves its manual classification");
+        mods[0].CatalogTargetId = null;
+        Pump(() => model.ModCatalog.Sections.Single(section => section.Id == "category:枪械 / 投掷").Count == 4); PumpFrames();
+        inlineList = window.GetVisualDescendants().OfType<ListBox>().Single(control => control.Name == "inlineTargetList" && control.IsEffectivelyVisible);
+        inlineList.SelectedItem = model.ModCatalog.InlineTargets.First(); PumpFrames();
+        var details = window.GetVisualDescendants().OfType<Button>().Single(control => control.Name == "inlineDetailsButton" && control.DataContext is VpkAddonViewModel item && item.Addon == mods[0]);
+        Click(details);
+        Pump(() => model.ModCatalog.IsBrowsing && model.SelectedVpk == mods[0] && !model.IsSearching && model.CurrentNodes.Contains(mods[0]));
+        Check(model.ShowModDetails, "only the explicit detail button navigates to the full mod page and selects the requested mod");
+        model.ModCatalog.ShowOverview(); PumpFrames();
+        var openCategory = window.GetVisualDescendants().OfType<Button>().Single(control => control.Name == "openCategoryPageButton" && control.IsEffectivelyVisible);
+        Click(openCategory);
+        Pump(() => model.ModCatalog.IsBrowsing && model.CurrentNodes.Count == 4 && !model.IsSearching);
+        PumpFrames();
+        Check(!overview.IsEffectivelyVisible && model.CurrentNodes.All(node => model.ModCatalog.Matches(node))
+            && model.ModCatalog.Categories.Any(category => category.Id == "melee:tonfa" && category.Name.Contains("警棍")),
+            "opening a category fills the mod workspace with its actual mods and retains readable target labels");
+        var modWorkspace = window.GetVisualDescendants().OfType<Grid>().Single(control => control.Name == "modWorkspace");
+        var targetSplitter = window.GetVisualDescendants().OfType<GridSplitter>().Single(control => control.Name == "categoryPaneSplitter");
+        var targetWidth = modWorkspace.ColumnDefinitions[0].ActualWidth;
+        Drag(targetSplitter, 45);
+        Check(modWorkspace.ColumnDefinitions[0].ActualWidth > targetWidth + 20,
+            "the target list and middle mod list have their own adjustable divider");
+        Drag(targetSplitter, -45);
+        using (var frame = window.CaptureRenderedFrame()!) frame.Save(Path.Combine(output, "category-mods-preview.png"));
+        model.SelectNode(mods[0]); PumpFrames();
+        Check(model.ShowModDetails, "mod details appear only after selecting a mod");
+        model.ModCatalog.ShowOverview(); PumpFrames();
+        Check(overview.IsEffectivelyVisible && !model.ShowModDetails, "returning to categories restores the full workspace");
+        var apply = window.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "quickApplyModsButton");
+        Check(window.GetVisualDescendants().OfType<TextBlock>().Any(text => text.IsEffectivelyVisible
+            && text.Text?.Contains("退出当前对局") == true), "the one-click apply button visibly explains that it leaves an active match");
+        Click(apply);
+        Pump(() => !model.IsApplyingMods && model.ModApplyStatus.Contains("Mod 已应用"));
+        Check(window.OwnedWindows.Count == 0 && root.Storage.IsStarted && mods.All(node => File.Exists(node.VpkFilePath)),
+            "one click applies mods offline without opening another page, prompting again or removing stored mods");
+        window.Close(); Complete(root.DisposeAsync().AsTask());
+
+        void Click(Control button)
+        {
+            button.BringIntoView(); PumpFrames();
+            var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
+            window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
+        }
+        void Drag(GridSplitter divider, double delta)
+        {
+            var point = divider.TranslatePoint(new Point(divider.Bounds.Width / 2, divider.Bounds.Height / 2), window)!.Value;
+            window.MouseMove(point); window.MouseDown(point, MouseButton.Left);
+            var destination = new Point(point.X + delta, point.Y);
+            window.MouseMove(destination); window.MouseUp(destination, MouseButton.Left); PumpFrames();
+        }
+    }
+}

@@ -75,6 +75,30 @@ internal static partial class Program
             foreach (var resource in resources.Where(path => path.EndsWith(".mdl", StringComparison.OrdinalIgnoreCase)).Take(12)) Console.WriteLine(resource);
             return;
         }
+        if (args is ["--inspect-catalog", var catalogDirectory])
+        {
+            // Read package directories only; never load the live library or refresh its game links.
+            var rows = new List<(string File, string[] PreviousCategories, string Category, string Target)>();
+            foreach (var path in Directory.EnumerateFiles(catalogDirectory, "*.vpk"))
+            {
+                try
+                {
+                    using var package = new Package(); package.Read(path);
+                    var inspection = new ModInspection(null, ModTargetClassifier.Classify(package.Entries!.Values.SelectMany(entries => entries).Select(entry => entry.GetFullPath())));
+                    rows.Add((Path.GetFileName(path), inspection.Targets.Select(match => match.Target.Category).Distinct().ToArray(),
+                        inspection.PrimaryTarget?.Category ?? "未识别 / 其他", inspection.PrimaryTarget?.Name ?? "未识别 / 其他"));
+                }
+                catch { rows.Add((Path.GetFileName(path), [], "未读取 / 读取失败", "未读取 / 读取失败")); }
+            }
+            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new
+            {
+                Total = rows.Count, PreviouslyInMultipleCategories = rows.Count(row => row.PreviousCategories.Length > 1),
+                AssignedTotal = rows.GroupBy(row => row.Category).Sum(group => group.Count()),
+                Categories = rows.GroupBy(row => row.Category).ToDictionary(group => group.Key, group => group.Count()),
+                Items = rows.Select(row => new { row.File, row.PreviousCategories, row.Category, row.Target })
+            }));
+            return;
+        }
         if (args is ["--inspect-workshop", var workshopLink])
         {
             if (!PublishedFileUtils.TryParsePublishedFileId(workshopLink, out var id)) throw new ArgumentException("无效的工坊链接 / ID。");
@@ -217,6 +241,7 @@ internal static partial class Program
         CheckWorkshopCollections();
         CheckUnifiedStorage(output);
         CheckMainMenuReload(output);
+        CheckCategoryDashboard(output);
         CheckReadableModControls(output);
         CheckLinkedSizesAndSelection(output);
         CheckPathReuse(output);
@@ -283,10 +308,10 @@ internal static partial class Program
         PumpFrames();
     }
 
-    private static void WriteVpk(string filePath, string title, string resource)
+    private static void WriteVpk(string filePath, string title, params string[] resources)
     {
         using var package = new Package();
-        package.AddFile(resource, [1, 2, 3]);
+        foreach (var resource in resources) package.AddFile(resource, [1, 2, 3]);
         package.AddFile("addoninfo.txt", Encoding.UTF8.GetBytes($"\"AddonInfo\" {{ \"addontitle\" \"{title}\" \"addonversion\" \"1\" }}"));
         package.Write(filePath);
     }

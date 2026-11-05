@@ -95,7 +95,7 @@ public class AddonNodeExplorerViewModel : ViewModelBase, IActivatableViewModel, 
     private AddonNodeSortMethod _sortMethod = AddonNodeSortMethod.None;
     private bool _isAscendingOrder = true;
 
-    private AddonNodeListItemViewKind _listItemViewKind = AddonNodeListItemViewKind.MediumTile;
+    private AddonNodeListItemViewKind _listItemViewKind = AddonNodeListItemViewKind.LargeTile;
     private readonly ObservableAsPropertyHelper<bool> _isGridView;
     private readonly ObservableAsPropertyHelper<bool> _isTileView;
     private readonly ObservableAsPropertyHelper<double> _tileViewSize;
@@ -122,10 +122,18 @@ public class AddonNodeExplorerViewModel : ViewModelBase, IActivatableViewModel, 
 
         _addonRoot = addonRoot;
         ModCatalog = new(addonRoot);
+        ModCatalog.ModRequested += addon =>
+        {
+            SearchText = "";
+            IsFilterEnabled = false;
+            GotoGroup(null);
+            SelectNode(addon);
+        };
         ModCatalog.CatalogChanged += () =>
         {
             if (ModCatalog.IsFiltering && CurrentGroup is not null) GotoGroup(null);
             UpdateSearchOptions();
+            this.RaisePropertyChanged(nameof(ShowModDetails));
         };
 
         _navBarItemViewModels = this.WhenAnyValue(x => x.CurrentGroup)
@@ -154,7 +162,7 @@ public class AddonNodeExplorerViewModel : ViewModelBase, IActivatableViewModel, 
             })
             .ToProperty(this, nameof(SelectedNode));
         this.WhenAnyValue(x => x.SelectedNode)
-            .Subscribe(_ => this.RaisePropertyChanged(nameof(SelectedVpk)))
+            .Subscribe(_ => { this.RaisePropertyChanged(nameof(SelectedVpk)); this.RaisePropertyChanged(nameof(ShowModDetails)); })
             .DisposeWith(_disposables);
         _hasSelection = this.WhenAnyValue(x => x.SelectedNodes.Count)
             .Select(count => count > 0)
@@ -203,14 +211,24 @@ public class AddonNodeExplorerViewModel : ViewModelBase, IActivatableViewModel, 
             .ToProperty(this, nameof(IsSearchTextClearable));
 
         GotoParentCommand = ReactiveCommand.Create(GotoParent, this.WhenAnyValue(x => x.CurrentGroup).Select(group => group != null));
-        GotoRootCommand = ReactiveCommand.Create(() => GotoGroup(null));
+        GotoRootCommand = ReactiveCommand.Create(() => { GotoGroup(null); ModCatalog.ShowOverview(); });
         LaunchGameCommand = ReactiveCommand.CreateFromTask(async () => { await LaunchGameInteraction.Handle(Unit.Default); });
         OpenWorkshopDownloadCommand = ReactiveCommand.CreateFromTask(async () => { await ShowWorkshopTransferInteraction.Handle((0, "")); });
         ImportWorkshopTextCommand = ReactiveCommand.CreateFromTask(async () => { await ShowWorkshopTransferInteraction.Handle((1, "")); });
         ExportWorkshopTextCommand = ReactiveCommand.CreateFromTask(async () => { await ShowWorkshopTransferInteraction.Handle((2, "")); });
         OpenWorkshopBackupCommand = ReactiveCommand.CreateFromTask(async () => { await ShowWorkshopTransferInteraction.Handle((3, "")); });
         OpenModOrganizerCommand = ReactiveCommand.CreateFromTask(async () => { await ShowWorkshopTransferInteraction.Handle((3, "")); });
-        OpenMainMenuReloadCommand = ReactiveCommand.CreateFromTask(async () => { await ShowWorkshopTransferInteraction.Handle((5, "")); });
+        OpenMainMenuReloadCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            IsApplyingMods = true;
+            try
+            {
+                using var operation = new WorkshopTransferViewModel(_addonRoot, 5);
+                using var progress = operation.WhenAnyValue(model => model.Status).Subscribe(status => ModApplyStatus = status);
+                await operation.ApplyInMainMenuCommand.Execute();
+            }
+            finally { IsApplyingMods = false; }
+        });
         OpenFileLocationCommand = ReactiveCommand.Create(() =>
         {
             if (SelectedNode is { } addon) Utils.ShowInFileExplorer(addon);
@@ -415,6 +433,9 @@ public class AddonNodeExplorerViewModel : ViewModelBase, IActivatableViewModel, 
     public ModCatalogViewModel ModCatalog { get; }
 
     public VpkAddon? SelectedVpk => ModCatalogViewModel.GetVpk(SelectedNode);
+    public bool ShowModDetails => ModCatalog.IsBrowsing && SelectedNode is not null;
+    public bool IsApplyingMods { get; private set => this.RaiseAndSetIfChanged(ref field, value); }
+    public string ModApplyStatus { get; private set => this.RaiseAndSetIfChanged(ref field, value); } = "";
 
     public AddonGroup? CurrentGroup
     {

@@ -39,6 +39,7 @@ internal static partial class Program
         using var activation = explorer.Activator.Activate();
         var window = new Window { Width = 1300, Height = 750, Content = new AddonNodeExplorerView { DataContext = explorer } };
         window.Show();
+        explorer.ModCatalog.ShowAll();
         Pump(() => !explorer.IsSearching && explorer.CurrentNodes.Count == 4);
         PumpFrames();
         Check(window.GetVisualDescendants().OfType<ListBox>().Count(list => ReferenceEquals(list.ItemsSource, explorer.CurrentNodes)) == 1, "tile and grid layouts use one mod list and one selection model");
@@ -57,8 +58,10 @@ internal static partial class Program
         PumpFrames();
         Check(explorer.SelectedNodes.Count == 2 && explorer.SelectedNodes.Distinct().Count() == 2, "changing layouts and refreshing a sorted list preserve two unique selections");
         explorer.SelectNode(local);
+        PumpFrames();
         var row = window.GetVisualDescendants().OfType<ListBoxItem>().Single(item => item.IsEffectivelyVisible && item.DataContext == chained);
-        var point = row.TranslatePoint(new Avalonia.Point(row.Bounds.Width / 2, row.Bounds.Height / 2), window)!.Value;
+        row.BringIntoView(); PumpFrames();
+        var point = row.TranslatePoint(new Avalonia.Point(30, row.Bounds.Height / 2), window)!.Value;
         window.MouseDown(point, Avalonia.Input.MouseButton.Left);
         window.MouseUp(point, Avalonia.Input.MouseButton.Left);
         PumpFrames();

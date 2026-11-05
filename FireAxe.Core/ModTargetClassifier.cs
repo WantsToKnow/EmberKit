@@ -6,6 +6,12 @@ public sealed record ModTargetMatch(ModTarget Target, IReadOnlyList<string> File
 
 public sealed record ModInspection(string? Title, IReadOnlyList<ModTargetMatch> Targets, string? Error = null)
 {
+    // Browsing has one home; all matches remain available for conflict detection and evidence.
+    public ModTarget? PrimaryTarget => Targets.OrderBy(match => match.Target.Id == "maps" ? 0 : match.Target.WarnOnOverlap ? 1 : 2)
+        .ThenBy(match => match.Files.Any(path => path.EndsWith(".mdl", StringComparison.OrdinalIgnoreCase)) ? 0
+            : match.Files.Any(path => path.StartsWith("materials/", StringComparison.OrdinalIgnoreCase)) ? 1 : 2)
+        .ThenBy(match => match.Target.Id, StringComparer.Ordinal).FirstOrDefault()?.Target;
+
     public string Summary => Error ?? (Targets.Count == 0 ? "未识别 / 其他" : string.Join(" · ", Targets.Select(match => match.Target.Name)));
     public string Evidence => Error ?? (Targets.Count == 0 ? "没有找到已知的游戏资源路径，可继续使用原有标签手动标记。" :
         string.Join("\n\n", Targets.Select(match => $"{match.Target.Category} / {match.Target.Name}\n" + string.Join("\n", match.Files))));
@@ -66,7 +72,13 @@ public static class ModTargetClassifier
             .Select(name => new Rule(new("melee:" + name, "近战", name), [name, "v_" + name, "w_" + name]))
     ];
 
-    public static IReadOnlyList<ModTarget> Targets { get; } = Array.AsReadOnly(Rules.Select(rule => rule.Target).Distinct().ToArray());
+    public static IReadOnlyList<ModTarget> Targets { get; } = Array.AsReadOnly(Rules.Select(rule => rule.Target).Concat(new ModTarget[]
+    {
+        new("maps", "地图 / 战役", "地图 / 战役", false), new("ui", "界面", "HUD / 界面", false),
+        new("music", "声音", "音乐", false), new("sounds", "声音", "其他音效", false),
+        new("scripts", "脚本", "脚本 / 玩法", false), new("particles", "特效", "粒子特效", false),
+        new("common_infected", "感染者", "其他感染者", false), new("unknown", "未识别 / 其他", "未识别 / 其他", false)
+    }).Distinct().ToArray());
 
     public static ModTargetMatch[] Classify(IEnumerable<string> filePaths)
     {

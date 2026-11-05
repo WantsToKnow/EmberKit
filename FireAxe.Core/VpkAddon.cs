@@ -78,7 +78,29 @@ public abstract class VpkAddon : AddonNode
 
     public Task? CheckVpkValidityTask { get; private set => NotifyAndSetIfChanged(ref field, value); } = null;
 
-    public ModInspection? Inspection { get; private set => NotifyAndSetIfChanged(ref field, value); }
+    public ModInspection? Inspection
+    {
+        get;
+        private set { if (NotifyAndSetIfChanged(ref field, value)) NotifyChanged(nameof(CatalogTarget)); }
+    }
+
+    public string? CatalogTargetId
+    {
+        get;
+        set
+        {
+            if (value is not null && !ModTargetClassifier.Targets.Any(target => target.Id == value))
+                throw new ArgumentException("无效的 Mod 分类标签。", nameof(value));
+            if (NotifyAndSetIfChanged(ref field, value))
+            {
+                NotifyChanged(nameof(CatalogTarget));
+                Root.RequestSave = true;
+            }
+        }
+    }
+
+    public ModTarget? CatalogTarget => CatalogTargetId is { } id
+        ? ModTargetClassifier.Targets.First(target => target.Id == id) : Inspection?.PrimaryTarget;
 
     public VpkAddonInfo? RetrieveInfo()
     {
@@ -312,6 +334,7 @@ public abstract class VpkAddon : AddonNode
         var save = (VpkAddonSave)save0;
         save.ContentHash = ContentHash;
         save.StorageFileName = StorageFileName;
+        save.CatalogTargetId = CatalogTargetId;
         save.OriginalPaths = OriginalPaths;
         save.ConflictIgnoringFiles = [.. ConflictIgnoringFiles];
     }
@@ -323,6 +346,7 @@ public abstract class VpkAddon : AddonNode
         var save = (VpkAddonSave)save0;
         if (save.ContentHash is { } hash && ModOrganizer.IsContentName(hash + ".vpk")) ContentHash = hash.ToUpperInvariant();
         if (save.StorageFileName is { } name && ModStorage.IsBodyName(name)) StorageFileName = name;
+        CatalogTargetId = ModTargetClassifier.Targets.Any(target => target.Id == save.CatalogTargetId) ? save.CatalogTargetId : null;
         OriginalPaths = save.OriginalPaths ?? [];
         ClearConflictIgnoringFiles();
         foreach (var file in save.ConflictIgnoringFiles)

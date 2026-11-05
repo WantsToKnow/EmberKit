@@ -38,7 +38,7 @@ internal static partial class Program
             using var explorer = new AddonNodeExplorerViewModel(root) { ListItemViewKind = AddonNodeListItemViewKind.Grid };
             using var activation = explorer.Activator.Activate();
             var window = new Window { Width = 1400, Height = 850, Content = new AddonNodeExplorerView { DataContext = explorer } };
-            window.Show(); PumpFrames();
+            window.Show(); explorer.ModCatalog.ShowAll(); PumpFrames();
             ToggleSwitch Toggle(AddonNode node) => window.GetVisualDescendants().OfType<ToggleSwitch>()
                 .First(control => control.IsEffectivelyVisible && control.DataContext is AddonNodeSimpleViewModel model && model.Addon == node);
             AddonNodeEnableButton EnableControl(AddonNode node) => window.GetVisualDescendants().OfType<AddonNodeEnableButton>()

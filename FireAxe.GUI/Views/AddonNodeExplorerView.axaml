@@ -16,72 +16,73 @@
     <vm:AddonNodeExplorerViewModelDesign/>
   </Design.DataContext>
   
-  <Grid
-    Name="rootGrid"
-    RowDefinitions="Auto, Auto, Auto, *"
-    ColumnDefinitions="*, Auto, 320">
-    <Border Grid.Row="0" Grid.ColumnSpan="3" Background="#1A2231" CornerRadius="8" Padding="16,12" Margin="0,0,0,8">
-      <StackPanel Spacing="12">
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
-          <StackPanel Spacing="4">
-            <TextBlock Text="MOD 工作台" FontSize="23" FontWeight="SemiBold" Foreground="#E4EDFF"/>
-            <TextBlock Text="{Binding ModCatalog.Summary}" Foreground="#A8BBD8" TextWrapping="Wrap"/>
-            <TextBlock Text="{Binding ModCatalog.Storage.Status}" Foreground="#FFCE8E" TextWrapping="Wrap"/>
-            <TextBlock Text="{Binding ModCatalog.RecheckStatus}" Foreground="#A8BBD8" TextWrapping="Wrap"/>
-            <TextBlock Text="多个模组同时影响同一对象，可能互相覆盖。点击左侧提醒查看。"
-                       IsVisible="{Binding ModCatalog.HasEnabledOverlap}" Foreground="#FFBE72" TextWrapping="Wrap"/>
+  <Grid Name="workspaceLayout">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="250" MinWidth="220" MaxWidth="360"/>
+      <ColumnDefinition Width="8"/>
+      <ColumnDefinition Width="*" MinWidth="520"/>
+    </Grid.ColumnDefinitions>
+    <Border Grid.Column="0" Background="#1A2231" CornerRadius="8">
+      <ScrollViewer Name="toolScrollViewer" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled" AllowAutoHide="False" HorizontalContentAlignment="Stretch">
+        <StackPanel Spacing="16" Margin="12">
+          <StackPanel Spacing="7">
+            <TextBlock Text="MOD 工作台" FontSize="21" FontWeight="SemiBold" Foreground="#E4EDFF"/>
+            <TextBlock Text="{Binding ModCatalog.Summary}" FontSize="12" Foreground="#A8BBD8" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding ModCatalog.Storage.Status}" FontSize="11" Foreground="#FFCE8E" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding ModCatalog.RecheckStatus}" FontSize="11" Foreground="#A8BBD8" TextWrapping="Wrap"/>
           </StackPanel>
-          <StackPanel Grid.Column="1" Spacing="7" Width="252" VerticalAlignment="Top">
-            <Button Name="launchGameButton" Command="{Binding LaunchGameCommand}"
-                    Background="#B8E99B" Foreground="#142112" BorderBrush="#B8E99B"
-                    CornerRadius="8" Padding="18,14" MinHeight="68" HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Center" ToolTip.Tip="启动前核验 Mod 入口，并通过 Steam 启动游戏，建立主菜单应用所需的连接。">
-              <Button.Styles>
-                <Style Selector="Button#launchGameButton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-                  <Setter Property="Background" Value="#CDF2B7"/>
-                </Style>
-                <Style Selector="Button#launchGameButton:pressed /template/ ContentPresenter#PART_ContentPresenter">
-                  <Setter Property="Background" Value="#A3D786"/>
-                </Style>
-              </Button.Styles>
-              <StackPanel Spacing="3">
-                <TextBlock Text="▶ 从助手启动游戏" FontSize="19" FontWeight="Bold"/>
-                <TextBlock Text="求生之路 2" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"/>
-              </StackPanel>
-            </Button>
-            <CheckBox Name="killFeedbackCheckBox" Content="启用击杀反馈" IsChecked="{Binding KillFeedback.Enabled}"
-                      ToolTip.Tip="按普通 Steam 方式启动，验证本次连接后加载自产客户端模块；不添加 -insecure。服务器兼容性仍需实测。"/>
-            <CheckBox Name="autoPistolCheckBox" Content="手枪自动连点（按住左键）" IsChecked="{Binding KillFeedback.AutoPistolEnabled}"
-                      ToolTip.Tip="仅装备手枪时生效，松开停止；切换其他武器恢复普通操作。勾选后通过助手重新启动游戏。"/>
-            <ComboBox Name="killFeedbackScope" SelectedIndex="{Binding KillFeedback.Scope}" IsEnabled="{Binding KillFeedback.Enabled}"
-                      HorizontalAlignment="Stretch" AutomationProperties.Name="击杀反馈触发范围">
-              <ComboBoxItem Content="所有僵尸"/>
-              <ComboBoxItem Content="仅特感（含 Tank / Witch）"/>
-            </ComboBox>
-            <TextBlock Text="普通启动；进入主菜单后会核对模块回执。" IsVisible="{Binding KillFeedback.Enabled}"
-                       Foreground="#A8BBD8" FontSize="12" TextWrapping="Wrap"/>
-            <TextBlock Text="从这里启动，即可使用「主菜单应用」功能。" FontSize="12" Foreground="#B8E99B" TextWrapping="Wrap"/>
+          <Button Name="launchGameButton" Command="{Binding LaunchGameCommand}" Background="#B8E99B" Foreground="#142112"
+                  BorderBrush="#B8E99B" CornerRadius="7" Padding="9,7" MinHeight="50" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  ToolTip.Tip="通过 Steam 启动游戏，并建立一键应用所需的连接。">
+            <StackPanel Spacing="2">
+              <TextBlock Text="▶ 从助手启动游戏" FontSize="15" FontWeight="Bold"/>
+              <TextBlock Text="求生之路 2" FontSize="11" Opacity="0.8" HorizontalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+          <Expander Name="launchSettingsExpander" Header="启动设置" IsExpanded="False" HorizontalAlignment="Stretch">
+            <StackPanel Spacing="5">
+              <CheckBox Name="killFeedbackCheckBox" Content="启用击杀反馈" IsChecked="{Binding KillFeedback.Enabled}" FontSize="12"/>
+              <CheckBox Name="autoPistolCheckBox" Content="手枪自动连点（按住左键）" IsChecked="{Binding KillFeedback.AutoPistolEnabled}" FontSize="12"/>
+              <ComboBox Name="killFeedbackScope" SelectedIndex="{Binding KillFeedback.Scope}" IsEnabled="{Binding KillFeedback.Enabled}"
+                        HorizontalAlignment="Stretch" FontSize="12" AutomationProperties.Name="击杀反馈触发范围">
+                <ComboBoxItem Content="所有僵尸"/>
+                <ComboBoxItem Content="仅特感（含 Tank / Witch）"/>
+              </ComboBox>
+              <TextBlock Text="普通启动；设置在下次启动生效。" Foreground="#A8BBD8" FontSize="11" TextWrapping="Wrap"/>
+            </StackPanel>
+          </Expander>
+          <StackPanel Spacing="7">
+            <TextBlock Text="工具" FontSize="13" FontWeight="SemiBold" Foreground="#A8BBD8"/>
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto">
+              <Grid.Styles><Style Selector="Button"><Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="HorizontalContentAlignment" Value="Center"/><Setter Property="Margin" Value="2"/><Setter Property="Padding" Value="7,6"/><Setter Property="FontSize" Value="12"/></Style></Grid.Styles>
+              <Button Content="工坊下载" Command="{Binding OpenWorkshopDownloadCommand}"/>
+              <Button Grid.Column="1" Content="本地存储" Command="{Binding OpenModOrganizerCommand}"/>
+              <Button Grid.Row="1" Content="导入 TXT" Command="{Binding ImportWorkshopTextCommand}"/>
+              <Button Grid.Row="1" Grid.Column="1" Content="导出 TXT" Command="{Binding ExportWorkshopTextCommand}"/>
+              <Button Grid.Row="2" Content="重新识别" Command="{Binding ModCatalog.RecheckCommand}"/>
+              <Button Grid.Row="2" Grid.Column="1" Content="分类首页" Command="{Binding ModCatalog.ShowOverview}"/>
+            </Grid>
           </StackPanel>
-        </Grid>
-        <WrapPanel Orientation="Horizontal">
-          <WrapPanel.Styles>
-            <Style Selector="Button"><Setter Property="Margin" Value="0,0,6,4"/></Style>
-          </WrapPanel.Styles>
-          <Button Content="工坊下载" Command="{Binding OpenWorkshopDownloadCommand}"/>
-          <Button Content="导入 TXT" Command="{Binding ImportWorkshopTextCommand}"/>
-          <Button Content="导出 TXT" Command="{Binding ExportWorkshopTextCommand}"/>
-          <Button Content="本地存储" Command="{Binding OpenModOrganizerCommand}"/>
-          <Button Content="主菜单应用" Command="{Binding OpenMainMenuReloadCommand}"/>
-          <Button Command="{Binding ModCatalog.RecheckCommand}" Content="重新识别" ToolTip.Tip="扫描 modebackup，恢复丢失链接及备份中的 Mod，清理确认缺失的本地记录，再更新分类和冲突检查。"/>
-        </WrapPanel>
-      </StackPanel>
+          <StackPanel Spacing="8">
+            <Button Name="quickApplyModsButton" Content="应用 Mod" Command="{Binding OpenMainMenuReloadCommand}"
+                    Background="#315879" Foreground="#E9F5FF" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="10,8" FontWeight="SemiBold"/>
+            <TextBlock Text="游戏中点击将退出当前对局，返回主菜单并重载。" Foreground="#FFCE8E" TextWrapping="Wrap" FontSize="11"/>
+            <TextBlock Name="quickApplyModsStatus" Text="{Binding ModApplyStatus}" TextWrapping="Wrap" Foreground="#B8E99B" FontSize="12"/>
+          </StackPanel>
+          <TextBlock Text="多个 Mod 同时替换同一对象，可在「重复替换」中查看。" IsVisible="{Binding ModCatalog.HasEnabledOverlap}"
+                     FontSize="11" Foreground="#FFBE72" TextWrapping="Wrap"/>
+        </StackPanel>
+      </ScrollViewer>
     </Border>
+    <GridSplitter Name="workspaceSplitter" Grid.Column="1" Width="8" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
+                  Background="#283445" Cursor="SizeWestEast" ToolTip.Tip="拖动分配工具区与工作区宽度"/>
+    <Grid Name="rootGrid" Grid.Column="2" RowDefinitions="0,Auto,Auto,*" ColumnDefinitions="*,Auto,320" Margin="8,0,0,0">
     <Grid
       RowDefinitions="Auto"
       ColumnDefinitions="Auto, Auto, *"
       Grid.Row="1"
       Grid.Column="0" 
-      Margin="5">
+      Margin="5" IsVisible="{Binding ModCatalog.IsBrowsing}">
       <Grid.Styles>
         <Style Selector="Button">
           <Setter Property="Background" Value="Transparent"/>
@@ -113,13 +114,16 @@
       <ScrollViewer 
         Grid.Row="0" Grid.Column="2"
         HorizontalScrollBarVisibility="Auto">
-        <v:AddonNodeNavBarView/>
+        <StackPanel Orientation="Horizontal" Spacing="18">
+          <TextBlock Text="{Binding ModCatalog.SelectedCategory.Name}" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center"/>
+          <v:AddonNodeNavBarView/>
+        </StackPanel>
       </ScrollViewer>
     </Grid>
 
     <!--search, sort, view kind-->
     <DockPanel
-      Grid.Row="2" Grid.Column="0">
+      Grid.Row="2" Grid.Column="0" IsVisible="{Binding ModCatalog.IsBrowsing}">
       <DockPanel.Styles>
         <Style Selector="PathIcon">
           <Setter Property="Width" Value="20"/>
@@ -208,27 +212,33 @@
       Grid.Column="0"
       BorderThickness="1"
       BorderBrush="#343C4C"
-      CornerRadius="8" Padding="6">
-      <DockPanel>
-        <Border DockPanel.Dock="Left" Width="224" Margin="0,0,8,0" Padding="8" Background="#1A1F29" CornerRadius="7">
+      CornerRadius="8" Padding="6" IsVisible="{Binding ModCatalog.IsBrowsing}">
+      <Grid Name="modWorkspace">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="260" MinWidth="200" MaxWidth="420"/>
+          <ColumnDefinition Width="6"/>
+          <ColumnDefinition Width="*" MinWidth="160"/>
+        </Grid.ColumnDefinitions>
+        <Border Grid.Column="0" Margin="0,0,6,0" Padding="10" Background="#1A1F29" CornerRadius="7">
           <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
             <StackPanel Margin="5,3,5,10" Spacing="5">
-              <TextBlock Text="按替换对象分类" FontSize="16" FontWeight="SemiBold"/>
-              <TextBlock Text="读取 VPK 内容 · 可同时属于多类" FontSize="11" Foreground="#98A8BE"/>
+              <Button Content="← 返回分类首页" Command="{Binding ModCatalog.ShowOverview}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"/>
+              <TextBlock Text="切换替换对象" FontSize="18" FontWeight="SemiBold" Margin="0,6,0,0"/>
+              <TextBlock Text="选择枪位、角色或具体装备" FontSize="12" Foreground="#98A8BE"/>
             </StackPanel>
             <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" Margin="3,0,3,8">
               <Button Content="全部展开" Command="{Binding ModCatalog.ExpandAll}" FontSize="11" Padding="9,5"/>
               <Button Content="全部收起" Command="{Binding ModCatalog.CollapseAll}" FontSize="11" Padding="9,5"/>
             </StackPanel>
             <ListBox Grid.Row="2" ItemsSource="{Binding ModCatalog.Categories}" SelectedItem="{Binding ModCatalog.SelectedCategory}"
-                     Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                     Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Visible">
               <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:ModCategoryFilter">
-                  <Grid ColumnDefinitions="20,*,28" Margin="0,3" ToolTip.Tip="{Binding Description}">
+                  <Grid ColumnDefinitions="22,*,30" Margin="0,6" ToolTip.Tip="{Binding Description}">
                     <Button IsVisible="{Binding IsGroup}" Content="{Binding ExpandGlyph}" Command="{Binding Toggle}"
                             Background="Transparent" Padding="0" FontSize="14" Width="18" Height="20" ToolTip.Tip="展开 / 收起这组分类"/>
-                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="2" Text="{Binding Count}" FontSize="12" Foreground="#95BDF9" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="14" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="2" Text="{Binding Count}" FontSize="13" Foreground="#95BDF9" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                   </Grid>
                 </DataTemplate>
               </ListBox.ItemTemplate>
@@ -256,6 +266,9 @@
             </Expander>
           </Grid>
         </Border>
+        <GridSplitter Name="categoryPaneSplitter" Grid.Column="1" Width="6" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
+                      Background="#283445" Cursor="SizeWestEast" ToolTip.Tip="拖动分配对象列表与中间 Mod 列表的宽度"/>
+        <DockPanel Grid.Column="2">
         <!--moving nodes-->
         <DockPanel
           DockPanel.Dock="Top"
@@ -388,7 +401,7 @@
           </ScrollViewer>
         </Panel>
         <!--current nodes-->
-        <ScrollViewer>
+        <ScrollViewer Name="modListScrollViewer" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled" AllowAutoHide="False">
           <Panel Name="currentNodesContainerControl">
             <Panel.Styles>
               <Style Selector="ListBoxItem">
@@ -449,15 +462,16 @@
             </ListBox>
 
             <!--empty hint-->
-            <TextBlock
-              IsVisible="{Binding CurrentNodes.Count, Converter={x:Static conv:CollectionConverters.IsEmpty}, FallbackValue=False}"
-              Text="{x:Static r:Texts.Empty}"
-              HorizontalAlignment="Center"
-              VerticalAlignment="Top"
-              Margin="20"/>
+            <StackPanel IsVisible="{Binding CurrentNodes.Count, Converter={x:Static conv:CollectionConverters.IsEmpty}, FallbackValue=False}"
+                        HorizontalAlignment="Center" VerticalAlignment="Top" Margin="24,45" Spacing="14">
+              <TextBlock Text="当前分类没有匹配的 Mod" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+              <TextBlock Text="可以切换左侧对象，或回到分类首页继续找。" Foreground="#98A8BE" HorizontalAlignment="Center"/>
+              <Button Content="返回分类首页" Command="{Binding ModCatalog.ShowOverview}" HorizontalAlignment="Center"/>
+            </StackPanel>
           </Panel>
         </ScrollViewer>
       </DockPanel>
+      </Grid>
 
       <!--context menu-->
       <Border.ContextMenu>
@@ -505,7 +519,7 @@
     <GridSplitter
       Grid.Row="1" Grid.Column="1" Grid.RowSpan="3"
       ResizeDirection="Columns"
-      IsVisible="{Binding $parent[v:AddonNodeExplorerView].IsAddonNodeViewEnabled}"
+      IsVisible="{Binding ShowModDetails}"
       Width="4"/>
     
     <!--addon node view parent-->
@@ -513,13 +527,13 @@
       Grid.Row="1"
       Grid.Column="2"
       Grid.RowSpan="3"
-      IsVisible="{Binding $parent[v:AddonNodeExplorerView].IsAddonNodeViewEnabled}"
+      IsVisible="{Binding ShowModDetails}"
       BorderThickness="1"
       BorderBrush="#343C4C"
       CornerRadius="8"
       HorizontalAlignment="Stretch"
       VerticalAlignment="Stretch">
-      <ScrollViewer>
+      <ScrollViewer Name="modDetailsScrollViewer" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled" AllowAutoHide="False">
         <Panel>
           <StackPanel IsVisible="{Binding !HasSelection}" Margin="22,30" Spacing="12">
             <TextBlock Text="模组详情" FontSize="20" FontWeight="SemiBold"/>
@@ -564,5 +578,9 @@
       </ScrollViewer>
     </Border>
     
+    <Border Name="categoryOverview" Grid.Row="1" Grid.RowSpan="3" Grid.ColumnSpan="3" IsVisible="{Binding ModCatalog.IsOverview}">
+      <v:ModCategoryHomeView DataContext="{Binding ModCatalog}"/>
+    </Border>
+  </Grid>
   </Grid>
 </UserControl>
