@@ -59,7 +59,7 @@ public class VpkAddonConflictCheckSettings
 public static class AddonConflictUtils
 {
     private static readonly FrozenSet<string> s_commonIgnoringVpkFiles = FrozenSet.ToFrozenSet([
-        "addoninfo.txt", "addoninfo.jpg", "addonimage.jpg", "addonimage.vtf", 
+        "addoninfo.txt", "addoninfo.jpg", "addonimage.jpg", "addonimage.vtf", WeaponAnimationRecipe.EntryPath,
         "sound/sound.cache", 
         "scripts/vscripts/mapspawn_addon.nut", "scripts/vscripts/response_testbed_addon.nut", "scripts/vscripts/scriptedmode_addon.nut", "scripts/vscripts/director_base_addon.nut"
     ]);
@@ -111,6 +111,8 @@ public static class AddonConflictUtils
             () =>
             {
                 var priorityGroups = new Dictionary<int, (Dictionary<string, HashSet<VpkAddon>> FileToAddons, Dictionary<VpkAddon, HashSet<string>> AddonToFiles)>();
+                var mapAddons = new HashSet<VpkAddon>();
+                var mapFiles = new Dictionary<(VpkAddon, string), (uint Crc, ulong Length)>();
 
                 foreach (var vpkItem in vpkItems)
                 {
@@ -137,6 +139,8 @@ public static class AddonConflictUtils
                     }
 
                     var addon = vpkItem.Addon;
+                    if (VpkUtils.GetAddonInfo(pak)?.IsMap == true || pak.Entries.Values.SelectMany(entries => entries)
+                        .Any(entry => IsMapDefinition(entry.GetFullPath()))) mapAddons.Add(addon);
                     var priority = vpkItem.Priority;
                     if (!priorityGroups.TryGetValue(priority, out var priorityGroup))
                     {
@@ -152,6 +156,7 @@ public static class AddonConflictUtils
                             cancellationToken.ThrowIfCancellationRequested();
 
                             string file = pakEntry.GetFullPath();
+                            if (IsMapDefinition(file)) mapFiles[(addon, file)] = (pakEntry.CRC32, (ulong)pakEntry.TotalLength);
                             if (s_commonIgnoringVpkFiles.Contains(file) || vpkItem.IgnoredFiles.Contains(file) || settings.IgnoringFileSet.ShouldIgnore(file))
                             {
                                 continue;
@@ -180,6 +185,7 @@ public static class AddonConflictUtils
 
                 var resultFileToAddons = new Dictionary<string, HashSet<VpkAddon>>();
                 var resultAddonToFiles = new Dictionary<VpkAddon, HashSet<string>>();
+                var attention = new HashSet<VpkAddon>();
 
                 foreach (var (fileToAddons, addonToFiles) in priorityGroups.Values)
                 {
@@ -195,6 +201,10 @@ public static class AddonConflictUtils
                             resultFileToAddons[file] = resultAddons;
                         }
                         resultAddons.UnionWith(addons);
+                        // Campaign packs commonly share assets. Different map/mission versions still need attention.
+                        if (!addons.All(mapAddons.Contains) || IsMapDefinition(file)
+                            && addons.Select(addon => mapFiles[(addon, file)]).Distinct().Count() > 1)
+                            attention.UnionWith(addons);
                     }
                     foreach (var (addon, files) in addonToFiles)
                     {
@@ -209,12 +219,15 @@ public static class AddonConflictUtils
 
                 return new VpkAddonConflictResult(
                     resultFileToAddons.Select(kvp => (kvp.Key, (IEnumerable<VpkAddon>)kvp.Value.ToArray())).ToDictionary(),
-                    resultAddonToFiles.Select(kvp => (kvp.Key, (IEnumerable<string>)kvp.Value.ToArray())).ToDictionary()
+                    resultAddonToFiles.Select(kvp => (kvp.Key, (IEnumerable<string>)kvp.Value.ToArray())).ToDictionary(), attention
                 );
             },
             cancellationToken
         );
     }
+
+    private static bool IsMapDefinition(string file) => file.StartsWith("missions/", StringComparison.OrdinalIgnoreCase)
+        || file.StartsWith("maps/", StringComparison.OrdinalIgnoreCase) && file.EndsWith(".bsp", StringComparison.OrdinalIgnoreCase);
 
     private class VpkItem
     {
@@ -237,16 +250,21 @@ public class VpkAddonConflictResult
 {
     private readonly IReadOnlyDictionary<string, IEnumerable<VpkAddon>> _fileToAddons;
     private readonly IReadOnlyDictionary<VpkAddon, IEnumerable<string>> _addonToFiles;
+    private readonly IReadOnlySet<VpkAddon> _attentionAddons;
 
-    internal VpkAddonConflictResult(IReadOnlyDictionary<string, IEnumerable<VpkAddon>> fileToAddons, IReadOnlyDictionary<VpkAddon, IEnumerable<string>> addonToFiles)
+    internal VpkAddonConflictResult(IReadOnlyDictionary<string, IEnumerable<VpkAddon>> fileToAddons, IReadOnlyDictionary<VpkAddon, IEnumerable<string>> addonToFiles,
+        IReadOnlySet<VpkAddon> attentionAddons)
     {
         _fileToAddons = fileToAddons;
         _addonToFiles = addonToFiles;
+        _attentionAddons = attentionAddons;
     }
 
     public bool HasConflict => _addonToFiles.Count > 0;
 
     public IEnumerable<VpkAddon> ConflictingAddons => _addonToFiles.Keys;
+    public IEnumerable<VpkAddon> MapAdvisories => ConflictingAddons.Where(addon => !_attentionAddons.Contains(addon));
+    public bool NeedsAttention(VpkAddon addon) => _attentionAddons.Contains(addon);
 
     public IEnumerable<string> ConflictingFiles => _fileToAddons.Keys;
 

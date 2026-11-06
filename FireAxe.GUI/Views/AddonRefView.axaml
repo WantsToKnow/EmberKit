@@ -48,15 +48,15 @@
         HorizontalAlignment="Stretch"
         VerticalAlignment="Center"
         HorizontalContentAlignment="Stretch"
-        Background="Transparent">
+        Background="Transparent" ToolTip.Tip="定位到此 Mod 的分类与对象位置">
         <DockPanel>
           <v:AddonIconView
             DockPanel.Dock="Left"
             ImageSize="40"
             SpecialIconSize="{Binding $self.ImageSize}"
             Margin="0, 0, 2.5, 0"/>
-          <SelectableTextBlock
-            Text="{Binding Addon.Name}"
+          <TextBlock
+            Text="{Binding DisplayTitle}"
             TextWrapping="Wrap"
             HorizontalAlignment="Left"
             VerticalAlignment="Center"

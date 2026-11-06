@@ -150,7 +150,10 @@ public sealed class AddonProblemListViewModel : ViewModelBase, IActivatableViewM
             }).DisposeWith(disposables);
 
             addonRoot.ProblemProduced += NotifyProblemProduced;
-            Disposable.Create(() => addonRoot.ProblemProduced -= NotifyProblemProduced);
+            Disposable.Create(() => addonRoot.ProblemProduced -= NotifyProblemProduced).DisposeWith(disposables);
+            addonRoot.WhenAnyValue(root => root.VpkConflictResult).Subscribe(result =>
+                MapAdvisoryViewModels = result?.MapAdvisories.Select(addon => new AddonNodeSimpleViewModel(addon)).ToArray() ?? [])
+                .DisposeWith(disposables);
 
             foreach (var addon in addonRoot.GetDescendants())
             {
@@ -167,6 +170,7 @@ public sealed class AddonProblemListViewModel : ViewModelBase, IActivatableViewM
     public bool IsValid { get; private set => this.RaiseAndSetIfChanged(ref field, value); } = true;
 
     public AddonRoot AddonRoot { get; }
+    public IReadOnlyList<AddonNodeSimpleViewModel> MapAdvisoryViewModels { get; private set => this.RaiseAndSetIfChanged(ref field, value); } = [];
 
     public ReadOnlyObservableCollection<ProblemViewModel> ProblemViewModels
     {

@@ -52,6 +52,7 @@ public sealed class AddonRoot : ObservableObject, IAsyncDisposable, IAddonNodeCo
     private Task? _checkTask = null; 
     private CancellationTokenSource? _checkVpkConflictsCts = null;
     private Task<VpkAddonConflictResult>? _checkVpkConflictsTask = null;
+    public VpkAddonConflictResult? VpkConflictResult { get; private set => NotifyAndSetIfChanged(ref field, value); }
 
     private TaskScheduler? _taskScheduler = null;
 
@@ -404,7 +405,7 @@ public sealed class AddonRoot : ObservableObject, IAsyncDisposable, IAddonNodeCo
         {
             try
             {
-                if ((GamePathUtils.FromPath(GamePath) ?? GamePathUtils.FromPath(DirectoryPath)) is not null) await Storage.RefreshAsync();
+                if ((GamePathUtils.FromPath(GamePath) ?? GamePathUtils.FromPath(DirectoryPath)) is not null) Storage.CheckDeployment();
                 this.CheckDescendants();
                 await Task.WhenAll(this.GetDescendants().Select(node => node.CheckTask).OfType<Task>());
                 await CheckVpkAddonConflictsAsync();
@@ -429,6 +430,7 @@ public sealed class AddonRoot : ObservableObject, IAsyncDisposable, IAddonNodeCo
         var cancellationToken = _checkVpkConflictsCts.Token;
 
         var rawTask = AddonConflictUtils.CheckVpkConflictsAsync(Nodes, VpkAddonConflictCheckSettings, cancellationToken);
+        VpkConflictResult = null;
 
         foreach (var addon in this.GetDescendants())
         {
@@ -451,7 +453,7 @@ public sealed class AddonRoot : ObservableObject, IAsyncDisposable, IAddonNodeCo
                 {
                     foreach (var vpkAddon in conflictResult.ConflictingAddons)
                     {
-                        vpkAddon.SetProblem(new VpkAddonConflictProblem(vpkAddon));
+                        if (conflictResult.NeedsAttention(vpkAddon)) vpkAddon.SetProblem(new VpkAddonConflictProblem(vpkAddon));
 
                         vpkAddon._conflictingFilesWithAddonIds.Clear();
                         foreach (var (file, addons) in conflictResult.GetConflictingFilesWithAddons(vpkAddon))
@@ -466,6 +468,7 @@ public sealed class AddonRoot : ObservableObject, IAsyncDisposable, IAddonNodeCo
                         }
                     }
                 }
+                self.VpkConflictResult = conflictResult;
             }).ConfigureAwait(false);
             return conflictResult;
         }, cancellationToken);

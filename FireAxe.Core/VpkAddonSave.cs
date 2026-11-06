@@ -9,6 +9,7 @@ public class VpkAddonSave : AddonNodeSave
     public string? ContentHash { get; set; }
     public string? StorageFileName { get; set; }
     public string? CatalogTargetId { get; set; }
+    public WeaponAnimationRecipe? AnimationEdits { get; set; }
     public string[] OriginalPaths { get; set; } = [];
     public override Type TargetType => typeof(VpkAddon);
 

@@ -5,6 +5,8 @@ using Serilog;
 namespace FireAxe;
 
 public sealed record ModStorageReport(int Moved, int DuplicatesDeleted, int RestoredLinks, int DiscoveredMods, int RemovedRecords, string[] Warnings, bool Pending = false);
+public sealed record LocalVpkImportResult(VpkAddon[] Imported, VpkAddon[] Existing, string[] Errors);
+public sealed record EditedModReplacement(VpkAddon Mod, string Message);
 
 // One physical store and one game entry per content hash. Workshop checks never download.
 public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
@@ -15,11 +17,10 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
     private long _nextBodyId = 1;
     private FileSystemWatcher? _watcher;
     private Timer? _retry;
-    private bool _working, _queued, _disposed, _pending;
+    private bool _working, _disposed, _pending;
     private long _stateVersion;
     private string? _listPath;
     private DateTime _listWriteTime;
-    public Task? CurrentTask { get; private set; }
     public bool IsStarted { get; private set; }
     public HashSet<string> IgnoredHashes { get; } = new(StringComparer.OrdinalIgnoreCase);
     public string AddonsPath => Path.GetFullPath((GamePathUtils.FromPath(root.GamePath) ?? GamePathUtils.FromPath(root.DirectoryPath)) is { } game
@@ -101,16 +102,35 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
     {
         _stateVersion++;
         if (!IsStarted || _working || _disposed || !root.IsAutoCheckEnabled) return;
-        SetState(false, "等待同步游戏入口…");
-        if (_queued) return;
-        _queued = true;
-        CurrentTask = Task.Delay(180).ContinueWith(async _ =>
-        {
-            _queued = false;
-            if (_disposed || !root.IsValid) return;
-            try { await RefreshAsync(); }
-            catch (Exception ex) { SetState(false, "同步失败：" + ex.Message); Log.Error(ex, "Mod storage sync failed"); }
-        }, CancellationToken.None, TaskContinuationOptions.None, root.TaskScheduler).Unwrap();
+        _pending = true;
+        SetState(false, "修改待应用：点击「应用 Mod」后生效。退出游戏不会自动应用。");
+    }
+
+    // Opening/checking a library only compares its saved choices with existing entries.
+    // Full scans, hashing and writes belong to explicit application/organization actions.
+    public void CheckDeployment()
+    {
+        if (_working || _disposed) return;
+        root.ThrowIfInvalid();
+        IsStarted = true;
+        if (Directory.Exists(AddonsPath)) StartWatching();
+        if (_pending) { SetState(false, "修改待应用：点击「应用 Mod」后生效。退出游戏不会自动应用。"); return; }
+        var game = GamePathUtils.FromPath(root.GamePath) ?? GamePathUtils.FromPath(root.DirectoryPath);
+        _listPath = game is null ? null : GamePathUtils.GetAddonListPath(game);
+        _listWriteTime = _listPath is null ? default : File.GetLastWriteTimeUtc(_listPath);
+        var entries = _listPath is null ? new Dictionary<string, string>() : ModOrganizer.ReadEntries(_listPath);
+        var priorities = GetEnabledPriorities();
+        var nodes = root.GetDescendants().OfType<VpkAddon>().Where(node => !IsUninstalledDownload(node)).ToArray();
+        var verified = nodes.All(node => node.ContentHash is { } hash && node.VpkFilePath is { } body && File.Exists(body)
+            && (priorities.ContainsKey(hash)
+                ? entries.GetValueOrDefault(EntryName(hash)) == "1" && File.Exists(Path.Combine(AddonsPath, EntryName(hash)))
+                    && FileSystemUtils.IsSameFile(Path.Combine(AddonsPath, EntryName(hash)), body)
+                : entries.GetValueOrDefault(EntryName(hash), "0") == "0" && !File.Exists(Path.Combine(AddonsPath, EntryName(hash)))))
+            && entries.Where(entry => entry.Value == "1").All(entry => priorities.Keys.Any(hash => EntryName(hash).Equals(entry.Key, StringComparison.OrdinalIgnoreCase)))
+            && (!Directory.Exists(AddonsPath) || !ScanIncoming(AddonsPath).Any(path => !IsEntryName(path)));
+        _pending = !verified;
+        SetState(verified, verified ? "本地入口已核对。修改后需点击「应用 Mod」，退出游戏不会自动应用。"
+            : "修改待应用：点击「应用 Mod」后生效。退出游戏不会自动应用。");
     }
 
     public void Forget(AddonNode node)
@@ -138,7 +158,7 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
                 || path.StartsWith(TemporaryPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
                 || Path.GetFileName(path).StartsWith(".addonroot", StringComparison.OrdinalIgnoreCase)) return;
             if (_working) return;
-            _ = Task.Factory.StartNew(RequestSync, CancellationToken.None, TaskCreationOptions.None, root.TaskScheduler);
+            _ = Task.Factory.StartNew(CheckDeployment, CancellationToken.None, TaskCreationOptions.None, root.TaskScheduler);
         }
         _watcher.Created += (_, e) => Changed(e.FullPath);
         _watcher.Changed += (_, e) => Changed(e.FullPath);
@@ -149,9 +169,12 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
         _retry = new(_ =>
         {
             if (_disposed || _working) return;
-            var listChanged = _listPath is not null && File.GetLastWriteTimeUtc(_listPath) != _listWriteTime;
-            if (listChanged || _pending && !IsManagedGameRunning())
-                _ = Task.Factory.StartNew(RequestSync, CancellationToken.None, TaskCreationOptions.None, root.TaskScheduler);
+            var writeTime = _listPath is null ? default : File.GetLastWriteTimeUtc(_listPath);
+            if (_listPath is not null && writeTime != _listWriteTime)
+            {
+                _listWriteTime = writeTime;
+                _ = Task.Factory.StartNew(CheckDeployment, CancellationToken.None, TaskCreationOptions.None, root.TaskScheduler);
+            }
         }, null, 3000, 3000);
     }
 
@@ -171,7 +194,7 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
             if (IsManagedGameRunning())
             {
                 _pending = true;
-                SetState(false, "游戏运行中：修改待应用。可点「主菜单应用」返回主菜单并刷新，或退出游戏后自动同步。");
+                SetState(false, "游戏运行中：修改待应用。点击「应用 Mod」返回主菜单并刷新；退出游戏不会自动应用。");
                 return new(0, 0, 0, 0, 0, [], true);
             }
             _pending = false;
@@ -384,7 +407,7 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
             else if (_stateVersion != appliedVersion)
             {
                 _pending = true;
-                SetState(false, "开关已再次改变，正在等待应用最新状态…");
+                SetState(false, "开关已再次改变，请点击「应用 Mod」应用最新状态。");
             }
             else { SetState(true, "已同步并核验游戏入口；下次启动游戏加载。检查与重新识别不会下载 Mod。"); root.NotifySynchronized(); }
             return new(moved, duplicates, repaired, discovered, removed, [.. warnings]);
@@ -460,6 +483,15 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
                 SetState(false, "正在应用启用状态和 VPK 入口…");
                 var appliedVersion = _stateVersion;
                 ApplyEntries(bodies, listPath, out var entries);
+                // A locally imported file may already be in addons. Retire its loose alias only after unloading.
+                foreach (var source in ScanIncoming(AddonsPath).Where(path => !IsEntryName(path)).ToArray())
+                {
+                    var relative = Path.GetRelativePath(AddonsPath, source);
+                    var imported = nodes.FirstOrDefault(node => node.OriginalPaths.Contains(relative, StringComparer.OrdinalIgnoreCase));
+                    if (imported?.ContentHash is not { } hash) continue;
+                    await VerifyBody(source, token, hash);
+                    File.Delete(source); // The verified body and canonical entry are already retained.
+                }
                 SetState(false, "正在让游戏重新挂载 Mod，并核对游戏回执…");
                 GameConsole.Connection.CheckCommand(await connection.ExecuteAsync("update_addon_paths", token));
                 var mountedAddons = await connection.ReadMountedAddonsAsync(token);
@@ -512,7 +544,7 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
         finally { _working = false; _operation.Release(); }
     }
 
-    private int ApplyEntries(Dictionary<string, string> bodies, string? listPath, out Dictionary<string, string> entries)
+    private Dictionary<string, int> GetEnabledPriorities()
     {
         var priorities = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (var node in root.Nodes.SelectMany(node => node.GetAllNodesEnabledInHierarchy()))
@@ -521,6 +553,12 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
             if (vpk?.ContentHash is { } hash)
                 priorities[hash] = Math.Max(priorities.GetValueOrDefault(hash, int.MinValue), node.PriorityInHierarchy);
         }
+        return priorities;
+    }
+
+    private int ApplyEntries(Dictionary<string, string> bodies, string? listPath, out Dictionary<string, string> entries)
+    {
+        var priorities = GetEnabledPriorities();
         entries = new(StringComparer.OrdinalIgnoreCase);
         int repaired = 0;
         foreach (var pair in bodies)
@@ -655,7 +693,115 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
         }
     }
 
-    public async Task CommitDownloadAsync(VpkAddon node, string file, CancellationToken token)
+    public async Task<LocalVpkImportResult> ImportLocalVpkAsync(IEnumerable<string> paths, IProgress<string>? progress = null, CancellationToken token = default)
+    {
+        root.ThrowIfInvalid();
+        var imported = new List<VpkAddon>();
+        var existing = new List<VpkAddon>();
+        var errors = new List<string>();
+        using (root.BlockAutoCheck())
+        {
+            WorkshopBackup.EnsureRealDirectory(AddonsPath);
+            WorkshopBackup.EnsureRealDirectory(TemporaryPath);
+            foreach (var source in paths.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                token.ThrowIfCancellationRequested();
+                var temporary = Path.Combine(TemporaryPath, "local-" + Guid.NewGuid().ToString("N") + ".vpk");
+                LocalVpkAddon? node = null;
+                try
+                {
+                    progress?.Report("正在导入：" + Path.GetFileName(source));
+                    if (!Path.GetExtension(source).Equals(".vpk", StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidDataException("请选择解压后的 .vpk 文件。");
+                    await using (var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true))
+                    await using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true))
+                        await input.CopyToAsync(output, token);
+                    await Task.Run(() => WorkshopBackup.ValidateVpk(temporary), token);
+                    var hash = await WorkshopBackup.HashAsync(temporary, token);
+                    var duplicate = root.GetDescendants().OfType<VpkAddon>()
+                        .FirstOrDefault(item => string.Equals(item.ContentHash, hash, StringComparison.OrdinalIgnoreCase));
+                    var relative = Path.GetRelativePath(AddonsPath, Path.GetFullPath(source));
+                    var isLooseSource = !Path.IsPathRooted(relative) && !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+                        && !relative.StartsWith("modebackup" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+                        && !relative.StartsWith("firefox_temp" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) && !IsEntryName(source);
+                    if (duplicate is not null)
+                    {
+                        if (isLooseSource) duplicate.OriginalPaths = duplicate.OriginalPaths.Append(relative).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+                        existing.Add(duplicate);
+                        continue; // Preserve the existing enable choice and manual tag.
+                    }
+                    node = AddonNode.Create<LocalVpkAddon>(root);
+                    node.Name = root.GetUniqueChildName(Path.GetFileNameWithoutExtension(source), true);
+                    node.IsEnabled = true;
+                    if (isLooseSource) node.OriginalPaths = [relative];
+                    await CommitDownloadAsync(node, temporary, token, refresh: false);
+                    await node.CheckVpkValidity();
+                    imported.Add(node);
+                    node = null;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    errors.Add(Path.GetFileName(source) + "：" + ex.Message);
+                }
+                finally
+                {
+                    if (node is { IsValid: true }) await node.DestroyAsync();
+                    if (File.Exists(temporary)) File.Delete(temporary);
+                }
+            }
+            root.Save();
+        }
+        if (imported.Count > 0 || existing.Count > 0) CheckDeployment();
+        return new(imported.ToArray(), existing.ToArray(), errors.ToArray());
+    }
+
+    public async Task<EditedModReplacement> ReplaceEditedModAsync(VpkAddon original, string expectedHash, string editedFile, CancellationToken token = default)
+    {
+        // Editing creates a new version; deleting old versions is a separate user action.
+        var imported = await ImportLocalVpkAsync([editedFile], token: token);
+        var replacement = imported.Imported.FirstOrDefault() ?? imported.Existing.FirstOrDefault()
+            ?? throw new IOException(string.Join("\n", imported.Errors));
+        var message = "修改版已添加并启用。";
+        await _operation.WaitAsync(token);
+        _working = true;
+        try
+        {
+            using var blocked = root.BlockAutoCheck();
+            replacement.IsEnabled = true;
+            var matches = original.Root == root && original.IsValid && original != replacement;
+            if (matches)
+            {
+                var hash = original.ContentHash;
+                if (hash is null && original.VpkFilePath is { } source && File.Exists(source))
+                    hash = await WorkshopBackup.HashAsync(source, token);
+                matches = string.Equals(hash, expectedHash, StringComparison.OrdinalIgnoreCase);
+            }
+            if (!matches)
+                message += "原 Mod 版本已变化，仅新增，原版保留。";
+            else
+            {
+                replacement.CatalogTargetId ??= original.CatalogTargetId;
+                replacement.Priority = original.PriorityInHierarchy;
+                foreach (var id in original.DependentAddonIds.Where(id => id != replacement.Id && id != original.Id))
+                    replacement.AddDependentAddon(id);
+                foreach (var node in root.GetDescendants().ToArray())
+                {
+                    if (node is RefAddonNode reference && reference.SourceAddonId == original.Id) reference.SourceAddonId = replacement.Id;
+                    if (node.RemoveDependentAddon(original.Id) && node != replacement) node.AddDependentAddon(replacement.Id);
+                }
+                original.IsEnabled = false;
+                message += "旧版已保留并停用。删除请使用 Mod 行的「删除」按钮。";
+                message += "点击「应用 Mod」后加载修改版。";
+            }
+            root.Save();
+        }
+        finally { _working = false; _operation.Release(); }
+        CheckDeployment();
+        foreach (var node in root.GetDescendants()) node.CheckDependencies();
+        return new(replacement, message);
+    }
+
+    public async Task CommitDownloadAsync(VpkAddon node, string file, CancellationToken token, bool refresh = true)
     {
         await _operation.WaitAsync(token);
         try
@@ -683,7 +829,7 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
             root.Save();
         }
         finally { _operation.Release(); }
-        await RefreshAsync(token);
+        if (refresh) CheckDeployment();
     }
 
     public void Dispose()

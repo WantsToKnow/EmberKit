@@ -122,6 +122,13 @@ public class AddonNodeExplorerViewModel : ViewModelBase, IActivatableViewModel, 
 
         _addonRoot = addonRoot;
         ModCatalog = new(addonRoot);
+        ModCatalog.SelectionRequested += (addon, selected) =>
+        {
+            var matches = _selectedNodes.Where(node => ModCatalogViewModel.GetVpk(node) == addon).ToArray();
+            if (selected && matches.Length == 0) _selectedNodes.Add(addon);
+            else if (!selected) foreach (var node in matches) _selectedNodes.Remove(node);
+        };
+        _selectedNodes.ObserveCollectionChanges().Subscribe(_ => ModCatalog.UpdateSelection(_selectedNodes)).DisposeWith(_disposables);
         ModCatalog.ModRequested += addon =>
         {
             SearchText = "";
@@ -214,7 +221,24 @@ public class AddonNodeExplorerViewModel : ViewModelBase, IActivatableViewModel, 
         GotoRootCommand = ReactiveCommand.Create(() => { GotoGroup(null); ModCatalog.ShowOverview(); });
         LaunchGameCommand = ReactiveCommand.CreateFromTask(async () => { await LaunchGameInteraction.Handle(Unit.Default); });
         OpenWorkshopDownloadCommand = ReactiveCommand.CreateFromTask(async () => { await ShowWorkshopTransferInteraction.Handle((0, "")); });
+        OpenAdditionalFeaturesCommand = ReactiveCommand.CreateFromTask(async () => { await ShowAdditionalFeaturesInteraction.Handle(Unit.Default); });
         ImportWorkshopTextCommand = ReactiveCommand.CreateFromTask(async () => { await ShowWorkshopTransferInteraction.Handle((1, "")); });
+        ImportLocalVpkCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            IsImportingLocalVpk = true;
+            try
+            {
+                var files = await ChooseLocalVpkFilesInteraction.Handle(Unit.Default);
+                if (files.Count == 0) return;
+                var result = await _addonRoot.Storage.ImportLocalVpkAsync(files, new Progress<string>(message => LocalVpkImportStatus = message));
+                LocalVpkImportStatus = $"导入 {result.Imported.Length} 个 · 已有 {result.Existing.Length} 个 · 失败 {result.Errors.Length} 个。"
+                    + "已入库，点击「应用 Mod」后生效。"
+                    + (result.Errors.Length > 0 ? "\n" + string.Join("\n", result.Errors) : "");
+                if ((result.Imported.LastOrDefault() ?? result.Existing.LastOrDefault()) is { } target) LocateNode(target);
+            }
+            catch (Exception ex) { LocalVpkImportStatus = "导入未完成：" + ex.Message; }
+            finally { IsImportingLocalVpk = false; }
+        });
         ExportWorkshopTextCommand = ReactiveCommand.CreateFromTask(async () => { await ShowWorkshopTransferInteraction.Handle((2, "")); });
         OpenWorkshopBackupCommand = ReactiveCommand.CreateFromTask(async () => { await ShowWorkshopTransferInteraction.Handle((3, "")); });
         OpenModOrganizerCommand = ReactiveCommand.CreateFromTask(async () => { await ShowWorkshopTransferInteraction.Handle((3, "")); });
@@ -300,6 +324,7 @@ public class AddonNodeExplorerViewModel : ViewModelBase, IActivatableViewModel, 
         CreateRefAddonsBasedOnSelectedCommand = ReactiveCommand.Create(() => { CreateRefAddonsBasedOnSelected(); }, this.WhenAnyValue(x => x.HasSelection));
 
         DeleteCommand = ReactiveCommand.CreateFromTask<bool>(DeleteSelectionAsync, this.WhenAnyValue(x => x.HasSelection));
+        DeleteModCommand = ReactiveCommand.CreateFromTask<VpkAddon>(addon => DeleteNodesAsync([addon], false));
 
         var hasSelectedWorkshopVpkAddon = _selectedNodes.ObserveCollectionChanges()
             .Select(_ => SelectedNodes.SelectMany(addon => addon.GetSelfAndDescendants()).OfType<WorkshopVpkAddon>().Any());
@@ -435,6 +460,8 @@ public class AddonNodeExplorerViewModel : ViewModelBase, IActivatableViewModel, 
     public VpkAddon? SelectedVpk => ModCatalogViewModel.GetVpk(SelectedNode);
     public bool ShowModDetails => ModCatalog.IsBrowsing && SelectedNode is not null;
     public bool IsApplyingMods { get; private set => this.RaiseAndSetIfChanged(ref field, value); }
+    public bool IsImportingLocalVpk { get; private set => this.RaiseAndSetIfChanged(ref field, value); }
+    public string LocalVpkImportStatus { get; private set => this.RaiseAndSetIfChanged(ref field, value); } = "";
     public string ModApplyStatus { get; private set => this.RaiseAndSetIfChanged(ref field, value); } = "";
 
     public AddonGroup? CurrentGroup
@@ -571,9 +598,13 @@ public class AddonNodeExplorerViewModel : ViewModelBase, IActivatableViewModel, 
     public ReactiveCommand<Unit, Unit> GotoRootCommand { get; }
 
     public ReactiveCommand<Unit, Unit> OpenWorkshopDownloadCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenAdditionalFeaturesCommand { get; }
+    public Interaction<Unit, Unit> ShowAdditionalFeaturesInteraction { get; } = new();
     public ReactiveCommand<Unit, Unit> LaunchGameCommand { get; }
     public KillFeedbackSettings KillFeedback => _addonRoot.KillFeedback;
     public ReactiveCommand<Unit, Unit> ImportWorkshopTextCommand { get; }
+    public ReactiveCommand<Unit, Unit> ImportLocalVpkCommand { get; }
+    public Interaction<Unit, IReadOnlyList<string>> ChooseLocalVpkFilesInteraction { get; } = new();
     public ReactiveCommand<Unit, Unit> ExportWorkshopTextCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenWorkshopBackupCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenModOrganizerCommand { get; }
@@ -607,6 +638,8 @@ public class AddonNodeExplorerViewModel : ViewModelBase, IActivatableViewModel, 
     public ReactiveCommand<Unit, Unit> CreateRefAddonsBasedOnSelectedCommand { get; }
 
     public ReactiveCommand<bool, Unit> DeleteCommand { get; }
+    public ReactiveCommand<VpkAddon, Unit> DeleteModCommand { get; }
+    public string DeletionNames { get; private set; } = "";
 
     public ReactiveCommand<Unit, Unit> SetAutoUpdateStrategyToDefaultRecursivelyCommand { get; }
 
@@ -685,6 +718,20 @@ public class AddonNodeExplorerViewModel : ViewModelBase, IActivatableViewModel, 
 
         CurrentGroup = node.Group;
         SelectNode(node);
+    }
+
+    public void LocateNode(AddonNode node)
+    {
+        if (!node.IsValid || node.Root != AddonRoot) return;
+        if (ModCatalogViewModel.GetVpk(node) is { } vpk)
+        {
+            SearchText = "";
+            IsFilterEnabled = false;
+            GotoGroup(null);
+            ModCatalog.LocateMod(vpk);
+            SelectNode(vpk);
+        }
+        else { ModCatalog.ShowAll(); GotoNode(node); }
     }
 
     public void AddMovingNode(AddonNode node)
@@ -827,6 +874,7 @@ public class AddonNodeExplorerViewModel : ViewModelBase, IActivatableViewModel, 
             .Take(1)
             .Subscribe(_ =>
             {
+                if (ModCatalog.IsOverview) return; // Inline selection also includes mods inside groups and other expanded objects.
                 var visibleSelection = SelectedNodes.Where(CurrentNodes.Contains).ToArray();
                 if (visibleSelection.Length != SelectedNodes.Count) SelectNodes(visibleSelection);
             })
@@ -953,36 +1001,31 @@ public class AddonNodeExplorerViewModel : ViewModelBase, IActivatableViewModel, 
         }
     }
 
-    private async Task DeleteSelectionAsync(bool retainFile)
+    private Task DeleteSelectionAsync(bool retainFile) => DeleteNodesAsync(SelectedNodes, retainFile);
+
+    private async Task DeleteNodesAsync(IEnumerable<AddonNode> nodes, bool retainFile)
     {
         this.ThrowIfInvalid();
-
-        bool confirm = await ConfirmDeleteInteraction.Handle(retainFile);
-        if (!confirm)
-        {
-            return;
-        }
-        var selectedNodes = SelectedNodes.ToArray();
-        int count = selectedNodes.Length;
-        if (count == 0)
-        {
-            return;
-        }
-        var operations = new (Task, string)[count];
-        for (int i = 0; i < count; i++)
-        {
-            var node = selectedNodes[i];
-            var nodePath = node.NodePath;
-            if (retainFile)
-            {
-                operations[i] = (node.DestroyAsync(), nodePath);
-            }
-            else
-            {
-                operations[i] = (node.DestroyWithFileAsync(), nodePath);
-            }
-        }
+        var selected = nodes.Where(node => node is { IsValid: true } && node.Root == AddonRoot).Distinct().ToHashSet();
+        // A parent deletion invalidates its children immediately. Build the complete
+        // plan before starting anything, and never delete one selected node twice.
+        var targets = selected.Where(node => !node.GetSelfAndAncestors().Skip(1).OfType<AddonNode>().Any(selected.Contains))
+            .Select(node => (Node: node, Path: node.NodePath)).ToArray();
+        if (targets.Length == 0) return;
+        DeletionNames = string.Join("\n", targets.Select(target => ModCatalogViewModel.GetVpk(target.Node) is { } vpk
+            ? AddonRoot.DownloadHistory.GetDisplayTitle(vpk) : target.Path));
+        if (!await ConfirmDeleteInteraction.Handle(retainFile)) return;
+        var operations = targets.Select(target => (Delete(target.Node), target.Path)).ToArray();
         await ShowDeletionProgressInteraction.Handle(operations);
+
+        async Task Delete(AddonNode node)
+        {
+            if (!node.IsValid) return;
+            if (retainFile)
+                await node.DestroyAsync();
+            else
+                await node.DestroyWithFileAsync();
+        }
     }
 
     private void SetSelectionEnabled(bool enabled)

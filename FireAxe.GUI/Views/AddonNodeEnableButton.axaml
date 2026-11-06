@@ -11,7 +11,7 @@
     <vm:AddonNodeViewModelDesign/>
   </Design.DataContext>
   
-  <StackPanel Spacing="3" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="4">
+  <StackPanel Spacing="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2">
     <ToggleSwitch Name="button" IsChecked="{Binding Addon.IsEnabled, Mode=TwoWay}"
                   IsEnabled="{Binding Addon.IsValid, FallbackValue=False}"
                   OnContent="已启用" OffContent="已禁用" MinWidth="125"

@@ -161,19 +161,22 @@ internal static partial class Program
 
     private sealed class FixtureDownloads(byte[] data) : IDownloadService
     {
+        public int DownloadCount;
         public bool CorruptNext;
         public bool InvalidVpkNext;
+        public Task? CompletionGate;
         public IDownloadItem Download(string url, string filePath)
         {
+            DownloadCount++;
             var bytes = CorruptNext ? new byte[] { 1, 2, 3 } : InvalidVpkNext ? new byte[data.Length] : data;
             CorruptNext = false;
             InvalidVpkNext = false;
             File.WriteAllBytes(filePath, bytes);
-            return new FixtureDownload(url, filePath, bytes.Length);
+            return new FixtureDownload(url, filePath, bytes.Length, CompletionGate);
         }
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
-    private sealed class FixtureDownload(string url, string filePath, int length) : IDownloadItem
+    private sealed class FixtureDownload(string url, string filePath, int length, Task? completionGate = null) : IDownloadItem
     {
         public string Url => url;
         public string FilePath => filePath;
@@ -185,8 +188,8 @@ internal static partial class Program
         public void Pause() { }
         public void Resume() { }
         public void Cancel() { }
-        public void Wait() { }
-        public Task WaitAsync() => Task.CompletedTask;
+        public void Wait() => WaitAsync().GetAwaiter().GetResult();
+        public Task WaitAsync() => completionGate ?? Task.CompletedTask;
         public void Dispose() { }
     }
 }

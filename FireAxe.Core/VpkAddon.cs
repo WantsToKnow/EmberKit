@@ -55,6 +55,11 @@ public abstract class VpkAddon : AddonNode
     }
 
     public string[] OriginalPaths { get; internal set; } = [];
+    public WeaponAnimationRecipe? AnimationEdits
+    {
+        get;
+        internal set { if (NotifyAndSetIfChanged(ref field, value)) Root.RequestSave = true; }
+    }
     public string? StorageFileName
     {
         get;
@@ -220,6 +225,7 @@ public abstract class VpkAddon : AddonNode
             {
                 InvalidVpkFileProblem? problem = null;
                 ModInspection inspection = new(null, [], "文件不存在");
+                WeaponAnimationRecipe? animationEdits = null;
                 bool exist = false;
                 try
                 {
@@ -235,8 +241,12 @@ public abstract class VpkAddon : AddonNode
                     {
                         using var pak = new Package();
                         pak.Read(vpkPath);
+                        animationEdits = WeaponAnimationRecipe.Read(pak);
                         var targets = ModTargetClassifier.Classify(pak.Entries?.Values.SelectMany(entries => entries).Select(entry => entry.GetFullPath()) ?? []);
-                        inspection = new(VpkUtils.GetAddonInfo(pak)?.Title, targets);
+                        var info = VpkUtils.GetAddonInfo(pak);
+                        if (info?.IsMap == true && !targets.Any(match => match.Target.Id == "maps"))
+                            targets = [.. targets, new(ModTargetClassifier.Targets.First(target => target.Id == "maps"), ["addoninfo.txt"])];
+                        inspection = new(info?.Title, targets);
                     }
                     catch (Exception ex)
                     {
@@ -250,6 +260,7 @@ public abstract class VpkAddon : AddonNode
                     if (self.VpkFilePath != vpkPath) return;
                     self._addonInfo.SetTarget(null);
                     self.Inspection = inspection;
+                    if (animationEdits is not null) self.AnimationEdits = animationEdits;
                     self.SetProblem(problem);
                 }).ConfigureAwait(false);
             });
@@ -335,6 +346,7 @@ public abstract class VpkAddon : AddonNode
         save.ContentHash = ContentHash;
         save.StorageFileName = StorageFileName;
         save.CatalogTargetId = CatalogTargetId;
+        save.AnimationEdits = AnimationEdits;
         save.OriginalPaths = OriginalPaths;
         save.ConflictIgnoringFiles = [.. ConflictIgnoringFiles];
     }
@@ -348,6 +360,7 @@ public abstract class VpkAddon : AddonNode
         if (save.StorageFileName is { } name && ModStorage.IsBodyName(name)) StorageFileName = name;
         CatalogTargetId = ModTargetClassifier.Targets.Any(target => target.Id == save.CatalogTargetId) ? save.CatalogTargetId : null;
         OriginalPaths = save.OriginalPaths ?? [];
+        AnimationEdits = save.AnimationEdits?.IsValid == true ? save.AnimationEdits : null;
         ClearConflictIgnoringFiles();
         foreach (var file in save.ConflictIgnoringFiles)
         {
@@ -402,6 +415,7 @@ public abstract class VpkAddon : AddonNode
         {
             _addonInfo.SetTarget(null);
             Inspection = null;
+            AnimationEdits = null;
             NotifyImageChanged();
         }
     }

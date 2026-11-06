@@ -40,7 +40,8 @@
           <Expander Name="launchSettingsExpander" Header="启动设置" IsExpanded="False" HorizontalAlignment="Stretch">
             <StackPanel Spacing="5">
               <CheckBox Name="killFeedbackCheckBox" Content="启用击杀反馈" IsChecked="{Binding KillFeedback.Enabled}" FontSize="12"/>
-              <CheckBox Name="autoPistolCheckBox" Content="手枪自动连点（按住左键）" IsChecked="{Binding KillFeedback.AutoPistolEnabled}" FontSize="12"/>
+              <CheckBox Name="interpolationCheckBox" Content="联机插值预设（65 ms）" IsChecked="{Binding KillFeedback.InterpolationEnabled}" FontSize="12"
+                        ToolTip.Tip="下次通过助手启动时执行 cl_interp_ratio 1; cl_interp 0.065。服务器可能限制实际插值。"/>
               <ComboBox Name="killFeedbackScope" SelectedIndex="{Binding KillFeedback.Scope}" IsEnabled="{Binding KillFeedback.Enabled}"
                         HorizontalAlignment="Stretch" FontSize="12" AutomationProperties.Name="击杀反馈触发范围">
                 <ComboBoxItem Content="所有僵尸"/>
@@ -51,6 +52,10 @@
           </Expander>
           <StackPanel Spacing="7">
             <TextBlock Text="工具" FontSize="12" FontWeight="SemiBold" Foreground="#A8BBD8"/>
+            <Button Name="importLocalVpkButton" Content="＋ 导入 VPK" Command="{Binding ImportLocalVpkCommand}"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="6,6" FontSize="12"
+                    ToolTip.Tip="选择本地 .vpk，可多选。保留外部源文件；游戏中也可入库，点击应用 Mod 后生效。"/>
+            <TextBlock Name="localVpkImportStatus" Text="{Binding LocalVpkImportStatus}" TextWrapping="Wrap" FontSize="11" Foreground="#B8E99B"/>
             <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto">
               <Grid.Styles><Style Selector="Button"><Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="HorizontalContentAlignment" Value="Center"/><Setter Property="Margin" Value="2"/><Setter Property="Padding" Value="6,5"/><Setter Property="FontSize" Value="11"/><Setter Property="MinHeight" Value="28"/></Style></Grid.Styles>
               <Button Content="工坊下载" Command="{Binding OpenWorkshopDownloadCommand}"/>
@@ -64,7 +69,7 @@
           <StackPanel Spacing="8">
             <Button Name="quickApplyModsButton" Content="应用 Mod" Command="{Binding OpenMainMenuReloadCommand}"
                     Background="#315879" Foreground="#E9F5FF" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="10,8" FontWeight="SemiBold"/>
-            <TextBlock Text="游戏中点击将退出当前对局，返回主菜单并重载。" Foreground="#FFCE8E" TextWrapping="Wrap" FontSize="11"/>
+            <TextBlock Text="修改后手动点击应用；游戏中将退出当前对局，返回主菜单并重载。" Foreground="#FFCE8E" TextWrapping="Wrap" FontSize="11"/>
             <TextBlock Name="quickApplyModsStatus" Text="{Binding ModApplyStatus}" TextWrapping="Wrap" Foreground="#B8E99B" FontSize="12"/>
           </StackPanel>
           <TextBlock Text="存在同时启用的重复替换，可在右侧「重复替换」检查。" IsVisible="{Binding ModCatalog.HasEnabledOverlap}"
@@ -76,6 +81,8 @@
               <TextBlock Text="{Binding ModCatalog.Summary}" FontSize="11" Foreground="#A8BBD8" TextWrapping="Wrap"/>
             </StackPanel>
           </Expander>
+          <Button Name="additionalFeaturesButton" Content="⋯ 附加功能" Command="{Binding OpenAdditionalFeaturesCommand}"
+                  HorizontalAlignment="Right" Background="Transparent" Foreground="#879AB5" FontSize="11" Padding="5,3"/>
         </StackPanel>
       </ScrollViewer>
     </Border>

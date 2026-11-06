@@ -11,12 +11,15 @@
       <Setter Property="Padding" Value="8,4"/>
     </Style>
     <Style Selector="Button.rowAction"><Setter Property="FontSize" Value="11"/><Setter Property="Padding" Value="7,3"/><Setter Property="MinHeight" Value="24"/></Style>
+    <Style Selector="Border.modRow"><Setter Property="Background" Value="#25354A"/><Setter Property="BorderBrush" Value="Transparent"/></Style>
+    <Style Selector="Border.modRow.located"><Setter Property="Background" Value="#2D4762"/><Setter Property="BorderBrush" Value="#8CCEFF"/></Style>
+    <Style Selector="Border.modRow.selected"><Setter Property="Background" Value="#2D4762"/><Setter Property="BorderBrush" Value="#69BFFF"/></Style>
   </UserControl.Styles>
   <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10" Margin="8,4,0,0">
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,0,10,0">
       <StackPanel Spacing="3">
         <TextBlock Text="模组目录" FontSize="23" FontWeight="SemiBold"/>
-        <TextBlock Text="分类和对象都可同时展开，调整后点击「应用 Mod」。" Foreground="#9AAFC9" FontSize="12" TextWrapping="Wrap"/>
+        <TextBlock Text="分类和对象可同时展开；勾选 Mod 的「选择」可用于附加功能，调整后点击「应用 Mod」。" Foreground="#9AAFC9" FontSize="12" TextWrapping="Wrap"/>
       </StackPanel>
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
         <Button Classes="compact" Content="重复替换" Command="{Binding ShowOverlaps}" IsVisible="{Binding HasOverlaps}"/>
@@ -66,17 +69,23 @@
                               <ItemsControl Name="inlineModList" ItemsSource="{Binding VisibleMods}" Margin="6,0,6,5">
                                 <ItemsControl.ItemTemplate>
                                   <DataTemplate x:DataType="vm:VpkAddonViewModel">
-                                    <Border Name="inlineModCard" Background="#25354A" CornerRadius="6" Padding="9" Margin="0,0,0,5">
-                                      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                                        <v:AddonIconView ImageSize="48" SpecialIconSize="0" IsVisible="{Binding ShouldShowImage}" VerticalAlignment="Center"/>
-                                        <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                                    <Border Name="inlineModCard" Classes="modRow" Classes.located="{Binding IsLocated}" Classes.selected="{Binding IsSelected}" BorderThickness="1"
+                                            CornerRadius="6" Padding="9" Margin="0,0,0,5" Focusable="True">
+                                      <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
+                                        <CheckBox Name="inlineSelectModCheckBox" Content="选择" IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                                  Click="SelectMod" FontSize="11" MinHeight="24" VerticalAlignment="Center"
+                                                  ToolTip.Tip="选择此 Mod 用于附加功能，可直接勾选多个；右侧开关控制是否在游戏中启用。"/>
+                                        <v:AddonIconView Grid.Column="1" ImageSize="48" SpecialIconSize="0" IsVisible="{Binding ShouldShowImage}" VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="2" Spacing="3" VerticalAlignment="Center">
                                           <TextBlock Text="{Binding DisplayTitle}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding DisplayTitle}"/>
                                           <TextBlock Text="{Binding PreviewDescription}" TextTrimming="CharacterEllipsis" Foreground="#C3D1E2" FontSize="12" ToolTip.Tip="{Binding PreviewDescription}"
                                                      IsVisible="{Binding PreviewDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                                           <TextBlock Text="{Binding Info.Author, StringFormat='作者：{0}'}" Foreground="#91A8C3" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Info.Author}"
                                                      IsVisible="{Binding Info.Author, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                          <TextBlock Text="{Binding AnimationEditSummary}" Foreground="#FFCE8E" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding AnimationEditSummary}"
+                                                     IsVisible="{Binding AnimationEditSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                                         </StackPanel>
-                                        <StackPanel Grid.Column="2" Spacing="1" VerticalAlignment="Center">
+                                        <StackPanel Grid.Column="3" Spacing="1" VerticalAlignment="Center">
                                           <v:AddonNodeEnableButton/>
                                           <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center">
                                             <Button Name="inlineTagButton" Classes="rowAction" Content="标签" Click="PrepareTagEditor" ToolTip.Tip="{Binding CatalogLabel}">
@@ -93,7 +102,12 @@
                                                 </Flyout>
                                               </Button.Flyout>
                                             </Button>
+                                            <Button Name="inlineFileLocationButton" Classes="rowAction" Content="文件位置" Command="{Binding ShowInFileExplorer}"
+                                                    ToolTip.Tip="{Binding Addon.VpkFilePath}"/>
                                             <Button Name="inlineDetailsButton" Classes="rowAction" Content="详情 ↗" Click="OpenModDetails"/>
+                                            <Button Name="inlineDeleteModButton" Classes="rowAction" Content="删除" Foreground="#F4ADAD"
+                                                    Command="{Binding $parent[v:AddonNodeExplorerView].ViewModel.DeleteModCommand}" CommandParameter="{Binding Addon}"
+                                                    ToolTip.Tip="删除此 Mod 及文件；确认窗口会显示名称"/>
                                           </StackPanel>
                                         </StackPanel>
                                       </Grid>

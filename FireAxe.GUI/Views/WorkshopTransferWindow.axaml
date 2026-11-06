@@ -44,7 +44,7 @@
       </TabItem>
       <TabItem Header="导出 TXT">
         <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10" Margin="0,12,0,0">
-          <TextBlock Text="核验本地 Mod 的工坊来源；改过文件名的会尝试按标题搜索并核对文件内容。无法确认、私有或已删除的先跳过，不上传本地文件。" TextWrapping="Wrap"/>
+          <TextBlock Text="核验工坊来源并导出开关、优先级和换弹 / 切枪裁尾记录。导入后下载原版、按顺序生成派生版，两者均保留。无法确认来源的本地文件会列明原因，不上传本地文件。" TextWrapping="Wrap"/>
           <TextBox Grid.Row="1" Text="{Binding ExportText}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" VerticalAlignment="Stretch" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
           <DockPanel Grid.Row="2">
             <Button DockPanel.Dock="Right" Content="导出为 TXT…" Command="{Binding ExportCommand}"/>
@@ -55,7 +55,7 @@
       <TabItem Header="本地存储">
         <ScrollViewer Margin="0,12,0,0">
           <StackPanel Spacing="12">
-            <TextBlock Text="自动收集 addons 和 workshop 内的 VPK，实体集中到 modebackup，启用项在 addons 顶层建立 VPK 文件入口。游戏运行期间显示待应用：可点「主菜单应用」刷新，或退出后自动处理。" TextWrapping="Wrap"/>
+            <TextBlock Text="点击扫描后收集 addons 和 workshop 内的 VPK，实体集中到 modebackup，并核验游戏入口。开关修改只标记待应用，点击「应用 Mod」后生效；退出游戏不会自动应用。" TextWrapping="Wrap"/>
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
               <TextBox Text="{Binding GamePath}" Watermark="选择包含 left4dead2 文件夹的游戏根目录"/>
               <Button Grid.Column="1" Content="选择游戏目录…" Command="{Binding ChooseGameCommand}"/>
@@ -118,14 +118,15 @@
             <TextBlock Text="1. 首次用下方按钮启动游戏，等到主菜单。此后本次游戏运行期间都可以反复应用。" TextWrapping="Wrap"/>
             <StackPanel Orientation="Horizontal" Spacing="12">
               <CheckBox Content="启用击杀反馈" IsChecked="{Binding KillFeedback.Enabled}"/>
-              <CheckBox Content="手枪自动连点（按住左键）" IsChecked="{Binding KillFeedback.AutoPistolEnabled}"/>
               <ComboBox SelectedIndex="{Binding KillFeedback.Scope}" IsEnabled="{Binding KillFeedback.Enabled}"
                         MinWidth="220" AutomationProperties.Name="击杀反馈触发范围">
                 <ComboBoxItem Content="所有僵尸"/>
                 <ComboBoxItem Content="仅特感（含 Tank / Witch）"/>
               </ComboBox>
             </StackPanel>
-            <TextBlock Text="沿用普通 Steam 启动，不添加 -insecure；等待游戏连接后加载自产客户端模块，并核对初始化、事件和绘制状态。修改设置后下次启动生效。"
+            <CheckBox Name="workshopInterpolationCheckBox" Content="联机插值预设（65 ms）" IsChecked="{Binding KillFeedback.InterpolationEnabled}"
+                      ToolTip.Tip="下次通过助手启动时执行 cl_interp_ratio 1; cl_interp 0.065。服务器可能限制实际插值。"/>
+            <TextBlock Text="沿用普通 Steam 启动；插值预设在启动时执行，击杀反馈 / 连点按勾选加载客户端模块。修改设置后下次启动生效。"
                        TextWrapping="Wrap" Foreground="#98A8BE"/>
             <StackPanel Orientation="Horizontal" Spacing="8">
               <Button Content="通过助手启动游戏" Command="{Binding LaunchGameCommand}"/>

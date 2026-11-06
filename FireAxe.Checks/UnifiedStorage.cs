@@ -69,12 +69,28 @@ internal static partial class Program
         Check(File.Exists(pistol.VpkFilePath), "deleting a game symbolic link leaves the backup body intact");
         Complete(root.Storage.RefreshAsync());
         Check(FileSystemUtils.IsSameFile(Entry(pistol), pistol.VpkFilePath!), "rescan repairs a deleted game entry directly from the hash-backed record");
+        var listBeforeToggle = File.ReadAllBytes(list);
+        var indexBeforeToggle = File.ReadAllBytes(Path.Combine(root.Storage.BackupPath, ModBackupIndex.FileName));
         pistol.IsEnabled = false;
-        Pump(() => !File.Exists(Entry(pistol)) && pistol.IsGameSynchronized);
-        Check(ReadGameEntries(list)[Path.GetFileName(Entry(pistol))] == "0" && File.Exists(pistol.VpkFilePath), "disable automatically removes the game entry and persists state without a manual push");
+        PumpFrames();
+        Check(!pistol.IsGameSynchronized && File.Exists(Entry(pistol)) && File.ReadAllBytes(list).SequenceEqual(listBeforeToggle)
+            && File.ReadAllBytes(Path.Combine(root.Storage.BackupPath, ModBackupIndex.FileName)).SequenceEqual(indexBeforeToggle),
+            "offline disabling stays pending without rescanning or writing the game list, entry or index");
+        Complete(root.Storage.RefreshAsync());
+        Check(pistol.IsGameSynchronized && ReadGameEntries(list)[Path.GetFileName(Entry(pistol))] == "0" && File.Exists(pistol.VpkFilePath),
+            "an explicit apply removes the disabled entry while retaining its body");
         pistol.IsEnabled = true;
-        Pump(() => File.Exists(Entry(pistol)) && pistol.IsGameSynchronized);
-        Check(ReadGameEntries(list)[Path.GetFileName(Entry(pistol))] == "1", "enable automatically recreates the entry and verifies the game list");
+        PumpFrames();
+        Check(!pistol.IsGameSynchronized && !File.Exists(Entry(pistol)) && ReadGameEntries(list)[Path.GetFileName(Entry(pistol))] == "0",
+            "offline enabling also remains pending until explicit application");
+        Complete(root.Storage.RefreshAsync());
+        Check(ReadGameEntries(list)[Path.GetFileName(Entry(pistol))] == "1" && pistol.IsGameSynchronized,
+            "explicit application recreates the enabled entry and verifies the game list");
+        listBeforeToggle = File.ReadAllBytes(list);
+        pistol.Priority = 10; PumpFrames();
+        Check(!pistol.IsGameSynchronized && File.ReadAllBytes(list).SequenceEqual(listBeforeToggle),
+            "priority changes stay pending without rewriting the game's load order");
+        Complete(root.Storage.RefreshAsync());
 
         // Simulate an entry made by a previous version; the new runtime must only create symlinks.
         using (root.BlockAutoCheck())
@@ -96,9 +112,9 @@ internal static partial class Program
         var symbolicAgain = Complete(root.Storage.RefreshAsync());
         Check(symbolicAgain.RestoredLinks == 0 && symbolicAgain.DuplicatesDeleted == 0, "unchanged symbolic entries are retained without repeated deletion or conversion");
         pistol.IsEnabled = false;
-        Pump(() => !File.Exists(Entry(pistol)) && pistol.IsGameSynchronized);
+        Complete(root.Storage.RefreshAsync());
         pistol.IsEnabled = true;
-        Pump(() => File.Exists(Entry(pistol)) && pistol.IsGameSynchronized);
+        Complete(root.Storage.RefreshAsync());
         Check(new FileInfo(Entry(pistol)).LinkTarget is not null && File.Exists(pistol.VpkFilePath), "disable and reenable always retain symbolic links without removing or copying the body");
         var again = Complete(root.Storage.RefreshAsync());
         Check(again.Moved == 0 && again.DuplicatesDeleted == 0 && again.DiscoveredMods == 0 && Directory.GetFiles(addons, "*.vpk").Length == 2, "repeated scans keep exactly one entry per enabled body");
@@ -122,8 +138,10 @@ internal static partial class Program
         Check(!File.Exists(obsoleteLongEntry) && File.Exists(Entry(pistol)) && FileSystemUtils.IsSameFile(Entry(pistol), pistol.VpkFilePath!),
             "rescan migrates the v3.0 overlong hard link to the short entry without changing its body");
         File.WriteAllText(list, "\"AddonList\" { }");
-        Pump(() => pistol.IsGameSynchronized && ReadGameEntries(list).GetValueOrDefault(Path.GetFileName(Entry(pistol))) == "1");
-        Check(ReadGameEntries(list)[Path.GetFileName(Entry(scar))] == "1", "external game-list rewrites are detected and reconciled with manager switches");
+        Pump(() => !pistol.IsGameSynchronized);
+        Check(ReadGameEntries(list).Count == 0, "external game-list rewrites are detected but remain pending instead of being automatically overwritten");
+        Complete(root.Storage.RefreshAsync());
+        Check(ReadGameEntries(list)[Path.GetFileName(Entry(scar))] == "1", "explicit application reconciles an externally changed game list");
 
         var http = new SteamFixtureHandler(File.ReadAllBytes(scar.VpkFilePath!));
         using var client = new HttpClient(http);
@@ -133,6 +151,7 @@ internal static partial class Program
         root.Check();
         Pump(() => root.CheckTask is null);
         Check(http.MetadataRequests == 0 && !Directory.Exists(Path.Combine(addons, "3372750017.workshop")), "Check does not request workshop metadata or recreate canceled workshop downloads");
+        pistol.IsEnabled = false;
         root.Save();
         var legacySave = Newtonsoft.Json.Linq.JObject.Parse(AddonRoot.Serialize(root.CreateSave()));
         legacySave["UseSymbolicLinks"] = false;
@@ -141,8 +160,13 @@ internal static partial class Program
         Complete(root.DisposeAsync().AsTask());
         root = new AddonRoot { DirectoryPath = addons, GamePath = game, TaskScheduler = TaskScheduler.FromCurrentSynchronizationContext(), HttpClient = client, DownloadService = downloads };
         root.LoadSave(saved);
-        Complete(root.Storage.RefreshAsync());
         pistol = root.GetDescendants().OfType<LocalVpkAddon>().Single(node => node.ContentHash == pistolHash);
+        root.Check(); Pump(() => root.CheckTask is null);
+        Check(!pistol.IsEnabled && !pistol.IsGameSynchronized && File.Exists(Entry(pistol))
+            && ReadGameEntries(list)[Path.GetFileName(Entry(pistol))] == "1",
+            "reopening and checking a library preserves unapplied choices without changing the existing game entry");
+        pistol.IsEnabled = true;
+        Complete(root.Storage.RefreshAsync());
         Check(http.MetadataRequests == 0 && new FileInfo(Entry(pistol)).LinkTarget is not null
             && FileSystemUtils.IsSameFile(Entry(pistol), pistol.VpkFilePath!), "reopening a legacy library ignores its old hard-link preference and keeps symbolic entries without network calls");
         Check(pistol.StorageFileName is { } savedBodyName && ModStorage.IsBodyName(savedBodyName), "short body filenames survive save and reopen");
@@ -188,8 +212,13 @@ internal static partial class Program
             Check(active.IsValid && File.Exists(active.VpkFilePath) && File.Exists(entry),
                 "a rejected installed-mod deletion keeps its record, stored body and mounted entry");
             runningGame.Kill(entireProcessTree: true); runningGame.WaitForExit();
-            Pump(() => active.IsGameSynchronized && !File.Exists(entry));
-            Check(ReadGameEntries(list)[Path.GetFileName(entry)] == "0", "pending switches automatically apply after the game exits");
+            var exitedAt = DateTime.UtcNow;
+            Pump(() => DateTime.UtcNow - exitedAt > TimeSpan.FromMilliseconds(3300));
+            Check(!active.IsGameSynchronized && File.Exists(entry) && ReadGameEntries(list)[Path.GetFileName(entry)] == "1",
+                "pending switches stay unapplied after the game exits and the former retry timer has elapsed");
+            Complete(root.Storage.RefreshAsync());
+            Check(active.IsGameSynchronized && ReadGameEntries(list)[Path.GetFileName(entry)] == "0",
+                "a manual apply after game exit commits the pending switch");
         }
         File.Delete(gameHost);
 
@@ -210,7 +239,11 @@ internal static partial class Program
         }
         Complete(downloaded.CheckDownloadAsync());
         Check(downloaded.ContentHash is not null && downloaded.VpkFilePath!.StartsWith(root.Storage.BackupPath)
-            && new FileInfo(Entry(downloaded)).LinkTarget == Path.Combine("modebackup", downloaded.StorageFileName!), "explicit download validates then commits to the single bank and automatically enables its symbolic link");
+            && downloaded.IsEnabled && !downloaded.IsGameSynchronized && !File.Exists(Entry(downloaded)),
+            "downloaded mods are validated and archived with an enabled choice but remain pending application");
+        Complete(root.Storage.RefreshAsync());
+        Check(new FileInfo(Entry(downloaded)).LinkTarget == Path.Combine("modebackup", downloaded.StorageFileName!),
+            "manual application creates the newly downloaded mod's symbolic entry");
         Check(!Directory.Exists(root.Storage.TemporaryPath) && !Directory.Exists(Path.Combine(addons, "777.workshop")), "successful downloads leave neither a temporary directory nor workshop wrapper folders");
         var previousHash = downloaded.ContentHash;
         explicitDownloads.CorruptNext = true;

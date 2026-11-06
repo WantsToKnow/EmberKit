@@ -33,6 +33,8 @@ internal static class VpkUtils
 
                 addonInfo = new VpkAddonInfo
                 {
+                    IsMap = new[] { "addonContent_Campaign", "addonContent_Survival", "addonContent_Scavenge" }
+                        .Any(key => document.TryGetChildValueIgnoreCase(key)?.ToString() == "1"),
                     Version = versionStr,
                     Title = titleStr,
                     Author = authorStr,

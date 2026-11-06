@@ -12,6 +12,7 @@ public sealed class KillFeedbackSettings : ObservableObject
 {
     private bool _enabled;
     private bool _autoPistolEnabled;
+    private bool _interpolationEnabled;
     private int _scope = 1;
 
     [JsonProperty]
@@ -19,6 +20,9 @@ public sealed class KillFeedbackSettings : ObservableObject
 
     [JsonProperty]
     public bool AutoPistolEnabled { get => _autoPistolEnabled; set => NotifyAndSetIfChanged(ref _autoPistolEnabled, value); }
+
+    [JsonProperty]
+    public bool InterpolationEnabled { get => _interpolationEnabled; set => NotifyAndSetIfChanged(ref _interpolationEnabled, value); }
 
     public bool RequiresClientModule => Enabled || AutoPistolEnabled;
 

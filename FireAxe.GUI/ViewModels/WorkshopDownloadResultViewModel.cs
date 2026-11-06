@@ -26,6 +26,7 @@ public sealed class WorkshopDownloadResultViewModel : IDisposable
         };
         Detail = result.Error ?? (result.FinishedAt is { } finished ? "完成于 " + finished.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") : "已在本地的工坊 Mod");
         if (result.HashCheckSkipped) Detail += " · 本次下载已选择忽略工坊 Hash 校验";
+        if (result.AnimationSummary is { } summary) Detail += " · " + summary;
         PathText = FilePath ?? "未安装，没有已归档的 VPK。";
         StatusBrush = HasError ? Brushes.Orange : CanOpenFile ? Brushes.LightGreen : Brushes.Gray;
         OpenFileLocationCommand = ReactiveCommand.Create(() =>

@@ -1,0 +1,77 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:FireAxe.ViewModels" x:Class="FireAxe.Views.AdditionalFeaturesWindow"
+        x:DataType="vm:AdditionalFeaturesViewModel" Title="附加功能" Width="1200" Height="820"
+        MinWidth="850" MinHeight="480" WindowStartupLocation="CenterOwner">
+  <Grid Margin="18" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="14">
+    <StackPanel Spacing="5">
+      <TextBlock Text="附加功能" FontSize="23" FontWeight="SemiBold"/>
+      <CheckBox Name="autoPistolCheckBox" Content="手枪自动连点（按住左键）" IsChecked="{Binding KillFeedback.AutoPistolEnabled}"/>
+      <TextBlock Text="沿用已保存的启动设置；下次通过助手启动游戏时生效。" FontSize="12" Foreground="#A8BBD8"/>
+    </StackPanel>
+    <StackPanel Grid.Row="1" Spacing="8">
+      <TextBlock Text="换弹 / 切枪动画裁尾" FontSize="18" FontWeight="SemiBold"/>
+      <TextBlock Text="在主页面展开分类与对象，勾选 Mod 左侧的「选择」，可直接勾选多个。启用开关控制游戏加载。" TextWrapping="Wrap"/>
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <Button Name="readReloadAnimationsButton" Content="读取选中 Mod" Command="{Binding AnalyzeCommand}"/>
+        <TextBlock Text="{Binding SelectionText}" VerticalAlignment="Center" Foreground="#A8BBD8"/>
+        <Button Name="clearModSelectionButton" Content="清空选择" Command="{Binding ClearSelectionCommand}"/>
+        <Button Content="取消处理" Command="{Binding CancelCommand}" IsVisible="{Binding IsBusy}"/>
+      </StackPanel>
+      <Border Background="#1D2A3B" CornerRadius="5" Padding="10,6">
+        <ScrollViewer MaxHeight="74" VerticalScrollBarVisibility="Auto">
+          <TextBlock Name="selectedModNames" Text="{Binding SelectedModNames}" TextWrapping="Wrap" Foreground="#B8DDF7" FontSize="12"/>
+        </ScrollViewer>
+      </Border>
+      <TextBlock Text="更改选择后请重新读取。裁尾按整帧执行；显示的是模型动画时长，服务器的开枪等待时间可能独立限制。" FontSize="12" Foreground="#A8BBD8" TextWrapping="Wrap"/>
+    </StackPanel>
+    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Visible" IsEnabled="{Binding !IsBusy}">
+      <StackPanel IsVisible="{Binding HasRows}" Spacing="10">
+        <Grid ColumnDefinitions="*,135,110,110,2*" Margin="12,0">
+          <TextBlock Text="已读取的 Mod" FontWeight="SemiBold"/>
+          <TextBlock Grid.Column="1" Text="当前时长" FontWeight="SemiBold"/>
+          <TextBlock Grid.Column="2" Text="换弹裁尾（s）" FontWeight="SemiBold"/>
+          <TextBlock Grid.Column="3" Text="切枪裁尾（s）" FontWeight="SemiBold"/>
+          <TextBlock Grid.Column="4" Text="预览 / 结果" FontWeight="SemiBold"/>
+        </Grid>
+        <ItemsControl ItemsSource="{Binding Rows}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ReloadEditRow">
+              <Border Background="#1D2A3B" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                <Grid ColumnDefinitions="*,135,110,110,2*" RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
+                  <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,10,0"/>
+                  <TextBlock Grid.Column="1" Text="{Binding CurrentDuration}" VerticalAlignment="Center"/>
+                  <TextBox Name="reloadCutTextBox" Grid.Column="2" Text="{Binding CutText, Mode=TwoWay}" Watermark="-0.5"
+                           IsEnabled="{Binding CanEditReload}" Margin="0,0,12,0"/>
+                  <TextBox Name="drawCutTextBox" Grid.Column="3" Text="{Binding DrawCutText, Mode=TwoWay}" Watermark="-0.1"
+                           IsEnabled="{Binding CanEditDraw}" Margin="0,0,12,0"/>
+                  <TextBlock Grid.Column="4" Text="{Binding PreviewText}" TextWrapping="Wrap" Foreground="#FFCE8E"/>
+                  <Expander Grid.Row="1" Grid.ColumnSpan="5" Header="各动画序列" HorizontalAlignment="Stretch" FontSize="12">
+                    <TextBlock Text="{Binding Details}" TextWrapping="Wrap" Foreground="#A8BBD8"/>
+                  </Expander>
+                  <StackPanel Grid.Row="2" Grid.ColumnSpan="5" Spacing="3">
+                    <TextBlock Text="{Binding Result}" TextWrapping="Wrap" Foreground="#B8E99B"/>
+                    <TextBlock Text="{Binding OutputPath}" TextWrapping="Wrap" FontSize="11" Foreground="#A8BBD8"/>
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </ScrollViewer>
+    <StackPanel Grid.Row="3" Spacing="8">
+      <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Foreground="#B8E99B"/>
+      <StackPanel IsVisible="{Binding HasRows}" Spacing="3">
+        <CheckBox Name="replaceEditedModsCheckBox" Content="处理后停用旧版并启用新版" IsChecked="{Binding ReplaceAndEnable}" IsEnabled="{Binding !IsBusy}"/>
+        <TextBlock Text="保留旧版本及文件，不自动删除。需要删除时使用 Mod 行的「删除」按钮。"
+                   IsVisible="{Binding ReplaceAndEnable}" TextWrapping="Wrap" FontSize="11" Foreground="#FFCE8E"/>
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasRows}">
+        <Button Name="generateReloadCopiesButton" Content="{Binding GenerateButtonText}" Command="{Binding GenerateCommand}"/>
+        <Button Content="导入已生成副本" Command="{Binding ImportCopiesCommand}" IsEnabled="{Binding HasImportableOutputs}"/>
+        <Button Content="打开输出目录" Command="{Binding OpenOutputCommand}" IsEnabled="{Binding HasOutputs}"/>
+      </StackPanel>
+      <TextBlock Text="基于当前所选版本处理。未勾选时只生成副本；勾选后自动入库启用。游戏中的修改仍需点击主页面「应用 Mod」生效。" TextWrapping="Wrap" FontSize="12" Foreground="#A8BBD8"/>
+    </StackPanel>
+  </Grid>
+</Window>

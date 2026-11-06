@@ -1005,7 +1005,7 @@ public class AddonNode : ObservableObject, IHierarchyNode<AddonNode>, IValidity
 
         var root = Root;
         await DestroyAsync();
-        if (root.Storage.IsStarted) await root.Storage.RefreshAsync();
+        if (root.Storage.IsStarted) root.Storage.RequestSync();
         foreach (var pathToDelete in pathsToDelete)
         {
             if (root.GetDescendants().OfType<VpkAddon>().Any(node => node.VpkFilePath is { } retained && FileSystemUtils.IsSamePath(retained, pathToDelete))) continue;

@@ -4,6 +4,7 @@ namespace FireAxe;
 
 public class VpkAddonInfo
 {
+    public bool IsMap { get; init; }
     public string? Version { get; init; } = null;
 
     public string? Title { get; init; } = null;

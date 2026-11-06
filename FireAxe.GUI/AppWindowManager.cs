@@ -88,7 +88,7 @@ public class AppWindowManager : IAppWindowManager
         OpenWindow(ref _problemListWindowRef, () => new AddonProblemListWindow
         {
             DataContext = new AddonProblemListViewModel(addonRoot)
-        });
+        }, MainWindow);
     }
 
     public void OpenTagManagerWindow()
@@ -173,14 +173,18 @@ public class AppWindowManager : IAppWindowManager
         window.Show();
     }
 
-    private static void OpenWindow<T>(ref WindowReference<T>? windowRef, Func<T> windowFactory) where T : Window
+    private static void OpenWindow<T>(ref WindowReference<T>? windowRef, Func<T> windowFactory, Window? owner = null) where T : Window
     {
         if (windowRef is null || windowRef.Get() is null)
         {
             windowRef = new(windowFactory());
         }
         var window = windowRef.Get()!;
-        window.Show();
+        if (!window.IsVisible)
+        {
+            if (owner is null) window.Show();
+            else window.Show(owner);
+        }
         window.Activate();
     }
 }

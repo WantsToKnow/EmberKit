@@ -16,6 +16,9 @@ public sealed record ModCatalogTag(string? Id, string Label);
 
 public abstract class VpkAddonViewModel : AddonNodeViewModel
 {
+    public bool IsLocated { get; set => this.RaiseAndSetIfChanged(ref field, value); }
+    public bool IsSelected { get; set => this.RaiseAndSetIfChanged(ref field, value); }
+    public string? AnimationEditSummary => Addon?.AnimationEdits?.Summary;
     public static IReadOnlyList<ModCatalogTag> CatalogTags { get; } = new[] { new ModCatalogTag(null, "自动识别") }
         .Concat(ModTargetClassifier.Targets.OrderBy(target => target.Category).ThenBy(target => ModCatalogViewModel.DisplayName(target))
             .Select(target => new ModCatalogTag(target.Id, target.Category + " · " + ModCatalogViewModel.DisplayName(target)))).ToArray();
@@ -66,6 +69,7 @@ public abstract class VpkAddonViewModel : AddonNodeViewModel
             this.RaisePropertyChanged(nameof(CatalogLabel));
             this.RaisePropertyChanged(nameof(SelectedCatalogTag));
         }).DisposeWith(disposables);
+        ((VpkAddon)addon).WhenAnyValue(node => node.AnimationEdits).Subscribe(_ => this.RaisePropertyChanged(nameof(AnimationEditSummary))).DisposeWith(disposables);
         this.WhenAnyValue(model => model.Info, model => model.DisplayTitle)
             .Subscribe(_ => this.RaisePropertyChanged(nameof(PreviewDescription))).DisposeWith(disposables);
     }

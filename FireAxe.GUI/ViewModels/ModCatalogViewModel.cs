@@ -138,6 +138,7 @@ public sealed class ModCatalogViewModel : ViewModelBase
     private bool _isOverview = true;
     private string _categorySearchText = "";
     private IReadOnlyList<ModCategorySection> _sections = [];
+    private HashSet<VpkAddon> _selectedMods = [];
     private ModCategoryFilter _selectedCategory = new("all", "全部模组", "按游戏内替换对象识别", 0);
 
     public ModCatalogViewModel(AddonRoot root)
@@ -164,6 +165,22 @@ public sealed class ModCatalogViewModel : ViewModelBase
 
     public event Action? CatalogChanged;
     public event Action<VpkAddon>? ModRequested;
+    public event Action<VpkAddon>? LocateRequested;
+    public event Action<VpkAddon, bool>? SelectionRequested;
+    public void SelectMod(VpkAddon addon, bool selected)
+    {
+        if (addon.IsValid && addon.Root == _root) SelectionRequested?.Invoke(addon, selected);
+    }
+    public void UpdateSelection(IEnumerable<AddonNode> nodes)
+    {
+        _selectedMods = nodes.Select(GetVpk).OfType<VpkAddon>().ToHashSet();
+        UpdateSelectionMarkers();
+    }
+    private void UpdateSelectionMarkers()
+    {
+        foreach (var model in _sections.SelectMany(section => section.Children).SelectMany(target => target.Mods))
+            model.IsSelected = model.Addon is { } addon && _selectedMods.Contains(addon);
+    }
     public IReadOnlyList<ModCategoryFilter> Categories { get; private set => this.RaiseAndSetIfChanged(ref field, value); }
     public IReadOnlyList<ModOverlapGroup> OverlapGroups { get; private set => this.RaiseAndSetIfChanged(ref field, value); } = [];
     public string Summary { get; private set => this.RaiseAndSetIfChanged(ref field, value); } = "正在读取模组…";
@@ -208,6 +225,22 @@ public sealed class ModCatalogViewModel : ViewModelBase
         OnlyOverlaps = false;
         OpenCategory(CategoryId(addon));
         ModRequested?.Invoke(addon);
+    }
+
+    public void LocateMod(VpkAddon addon)
+    {
+        if (!addon.IsValid || addon.Root != _root) return;
+        CategorySearchText = "";
+        _selectedCategory = _allCategories.FirstOrDefault(category => category.Id == "all") ?? _selectedCategory;
+        ShowOverview();
+        RefreshEntries(_root.GetDescendants().Where(node => node.IsValid));
+        var section = _sections.FirstOrDefault(section => section.Id == CategoryId(addon));
+        var target = section?.Children.FirstOrDefault(target => target.Mods.Any(model => model.Addon == addon));
+        if (section is null || target is null) return;
+        section.IsExpanded = target.IsExpanded = true;
+        foreach (var model in _sections.SelectMany(section => section.Children).SelectMany(target => target.Mods))
+            model.IsLocated = model.Addon == addon;
+        LocateRequested?.Invoke(addon);
     }
     public void ShowOverview() { OnlyOverlaps = false; IsOverview = true; }
     public void ShowAll() => OpenCategory("all");
@@ -325,9 +358,7 @@ public sealed class ModCatalogViewModel : ViewModelBase
                 node.PropertyChanged += OnPropertyChanged;
                 Disposable.Create(() => node.PropertyChanged -= OnPropertyChanged).DisposeWith(nodes);
             }
-            _entries = allNodes.Select(node => (Node: node, Vpk: GetVpk(node))).Where(pair => pair.Vpk is not null)
-                .GroupBy(pair => pair.Vpk!).Select(group => new Entry(group.Key, group.Any(pair => pair.Node.IsEnabledInHierarchy))).ToArray();
-            RefreshCategories();
+            RefreshEntries(allNodes);
         }
         changes.Throttle(TimeSpan.FromMilliseconds(150), RxApp.MainThreadScheduler).Subscribe(_ => Rebuild()).DisposeWith(lifetime);
         _root.DescendantNodeCreated += Queue;
@@ -344,9 +375,18 @@ public sealed class ModCatalogViewModel : ViewModelBase
         Rebuild();
     }
 
+    private void RefreshEntries(IEnumerable<AddonNode> nodes)
+    {
+        _entries = nodes.Select(node => (Node: node, Vpk: GetVpk(node))).Where(pair => pair.Vpk is not null)
+            .GroupBy(pair => pair.Vpk!).Select(group => new Entry(group.Key, group.Any(pair => pair.Node.IsEnabledInHierarchy))).ToArray();
+        RefreshCategories();
+    }
+
     private void RefreshCategories()
     {
-        var byTarget = _entries.SelectMany(entry => (entry.Addon.Inspection?.Targets ?? []).Select(match => (Entry: entry, match.Target)))
+        var byTarget = _entries.SelectMany(entry => (entry.Addon.Inspection?.Targets ?? [])
+                .Where(match => !match.Target.WarnOnOverlap || entry.Addon.Inspection?.Targets.Any(target => target.Target.Id == "maps") != true)
+                .Select(match => (Entry: entry, match.Target)))
             .GroupBy(pair => pair.Target).OrderBy(group => group.Key.Category).ThenBy(group => group.Key.Name, StringComparer.Ordinal).ToArray();
         var categories = new List<ModCategoryFilter> { new("all", "全部模组", "整个目录 · 含子分组", _entries.Length) };
         var counts = _entries.Where(entry => entry.Addon.CatalogTarget is not null)
@@ -403,6 +443,7 @@ public sealed class ModCatalogViewModel : ViewModelBase
                 }).ToArray();
                 return section;
             }).ToArray();
+        UpdateSelectionMarkers();
         FilterSections();
         Categories = categories.Where(category => category.ParentId is null || !_collapsedCategories.Contains(category.ParentId)).ToArray();
         this.RaisePropertyChanged(nameof(SelectedCategory));

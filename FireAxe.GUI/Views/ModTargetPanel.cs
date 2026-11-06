@@ -8,7 +8,7 @@ namespace FireAxe.Views;
 public sealed class ModTargetPanel : Panel
 {
     private const double Gap = 8;
-    private static int Columns(double width) => width >= 1100 ? 2 : 1;
+    private int Columns(double width) => Children.Count > 1 && width >= 1100 ? 2 : 1;
 
     protected override Size MeasureOverride(Size availableSize)
     {

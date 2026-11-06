@@ -31,6 +31,7 @@ public partial class AddonNodeExplorerView : ReactiveUserControl<AddonNodeExplor
     private const int AddonNodeViewColumnIndex = 2;
 
     private SelectionMode _expectedSelectionMode = SelectionMode.Multiple;
+    private WindowReference<AdditionalFeaturesWindow>? _additionalFeaturesWindow;
 
     static AddonNodeExplorerView()
     {
@@ -93,6 +94,23 @@ public partial class AddonNodeExplorerView : ReactiveUserControl<AddonNodeExplor
 
     private void ConnectViewModel(AddonNodeExplorerViewModel viewModel, CompositeDisposable disposables)
     {
+        viewModel.ShowAdditionalFeaturesInteraction.RegisterHandler(context =>
+        {
+            var window = _additionalFeaturesWindow?.Get();
+            if (window is null)
+            {
+                window = new AdditionalFeaturesWindow { ViewModel = new AdditionalFeaturesViewModel(viewModel) };
+                _additionalFeaturesWindow = new(window);
+                window.Show(this.GetRootWindow());
+            }
+            window.Activate(); context.SetOutput(Unit.Default);
+        }).DisposeWith(disposables);
+        viewModel.ChooseLocalVpkFilesInteraction.RegisterHandler(async context =>
+        {
+            var window = TopLevel.GetTopLevel(this) as Window ?? throw new InvalidOperationException("未找到导入窗口。");
+            context.SetOutput(await CommonMessageBoxes.ChooseFiles(window,
+                new ChooseFileOptions { Title = "导入本地 VPK Mod（可多选）", FilePatterns = ["*.vpk"] }));
+        }).DisposeWith(disposables);
         if (IsSingleSelectionEnabled) viewModel.ModCatalog.ShowAll();
         viewModel.WhenAnyValue(model => model.ShowModDetails)
             .Subscribe(show => rootGrid.ColumnDefinitions[AddonNodeViewColumnIndex].MaxWidth = show && IsAddonNodeViewEnabled ? double.PositiveInfinity : 0)
@@ -128,6 +146,7 @@ public partial class AddonNodeExplorerView : ReactiveUserControl<AddonNodeExplor
         {
             bool retainFile = context.Input;
             string message = Texts.ConfirmDeleteMessage;
+            message += "\n\n" + viewModel.DeletionNames;
             if (retainFile)
             {
                 message += '\n' + Texts.RetainFileMessage;

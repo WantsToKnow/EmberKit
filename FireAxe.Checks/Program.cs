@@ -20,6 +20,17 @@ internal static partial class Program
     private static void Main(string[] args)
     {
         if (args is ["--hold-test-process"]) { Thread.Sleep(30000); return; }
+        if (args is ["--inspect-reload", var reloadPath])
+        {
+            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(ReloadAnimationEditor.AnalyzeAsync(reloadPath).GetAwaiter().GetResult()));
+            return;
+        }
+        if (args is ["--cut-reload", var cutPath, var cutSeconds, var cutOutput])
+        {
+            var analysis = ReloadAnimationEditor.AnalyzeAsync(cutPath).GetAwaiter().GetResult();
+            Console.WriteLine(ReloadAnimationEditor.ExportAsync(analysis, double.Parse(cutSeconds, CultureInfo.InvariantCulture), cutOutput).GetAwaiter().GetResult());
+            return;
+        }
         if (args is ["--inspect-console", var consoleGame])
         {
             // Explicit read-only diagnostic: never disconnect, unload, mount or write game files.
@@ -75,6 +86,16 @@ internal static partial class Program
             foreach (var resource in resources.Where(path => path.EndsWith(".mdl", StringComparison.OrdinalIgnoreCase)).Take(12)) Console.WriteLine(resource);
             return;
         }
+        if (args is ["--inspect-addoninfo", var infoPath])
+        {
+            using var package = new Package(); package.Read(infoPath);
+            if (package.FindEntry("addoninfo.txt") is { } entry)
+            {
+                package.ReadEntry(entry, out byte[] data);
+                Console.WriteLine(Encoding.UTF8.GetString(data));
+            }
+            return;
+        }
         if (args is ["--inspect-catalog", var catalogDirectory])
         {
             // Read package directories only; never load the live library or refresh its game links.
@@ -127,6 +148,43 @@ internal static partial class Program
         AppBuilder.Configure<App>().UseSkia().UseHeadless(new() { UseHeadlessDrawing = false }).UseReactiveUI().SetupWithoutStarting();
         Application.Current!.RequestedThemeVariant = ThemeVariant.Dark;
         SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext());
+        if (args.Contains("--unified-storage-only"))
+        {
+            CheckUnifiedStorage(output);
+            Console.WriteLine($"PASS: {_checks} unified-storage checks");
+            return;
+        }
+        if (args.Contains("--reload-editor-only"))
+        {
+            CheckReloadEditor(output);
+            CheckReloadReplacement(output);
+            Console.WriteLine($"PASS: {_checks} reload-editor checks");
+            return;
+        }
+        if (args.Contains("--delete-only"))
+        {
+            CheckDeletion(output);
+            Console.WriteLine($"PASS: {_checks} deletion checks");
+            return;
+        }
+        if (args.Contains("--animation-sharing-only"))
+        {
+            CheckAnimationSharing(output);
+            Console.WriteLine($"PASS: {_checks} animation-sharing checks");
+            return;
+        }
+        if (args.Contains("--local-import-only"))
+        {
+            CheckLocalVpkImport(output);
+            Console.WriteLine($"PASS: {_checks} local-import checks");
+            return;
+        }
+        if (args.Contains("--problem-navigation-only"))
+        {
+            CheckProblemNavigation(output);
+            Console.WriteLine($"PASS: {_checks} problem-navigation checks");
+            return;
+        }
 
         var root = new AddonRoot { TaskScheduler = TaskScheduler.FromCurrentSynchronizationContext(), DirectoryPath = fixtures };
         LocalVpkAddon ak1, ak2, m16, nick, other, broken;
@@ -242,8 +300,14 @@ internal static partial class Program
         CheckUnifiedStorage(output);
         CheckMainMenuReload(output);
         CheckCategoryDashboard(output);
+        CheckProblemNavigation(output);
+        CheckLocalVpkImport(output);
+        CheckReloadEditor(output);
+        CheckReloadReplacement(output);
+        CheckAnimationSharing(output);
         CheckReadableModControls(output);
         CheckLinkedSizesAndSelection(output);
+        CheckDeletion(output);
         CheckPathReuse(output);
         CheckPortableAppData(output);
         CheckKillFeedback(output);

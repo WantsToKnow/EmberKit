@@ -13,8 +13,8 @@ internal static partial class Program
     private static void CheckKillFeedback(string output)
     {
         var settings = new KillFeedbackSettings();
-        Check(!settings.Enabled && !settings.AutoPistolEnabled && !settings.RequiresClientModule && settings.Scope == 1,
-            "kill feedback and automatic pistol clicks default off, with specials selected");
+        Check(!settings.Enabled && !settings.AutoPistolEnabled && !settings.InterpolationEnabled && !settings.RequiresClientModule && settings.Scope == 1,
+            "kill feedback, pistol clicks and the interpolation preset default off, with specials selected");
         settings.Enabled = true; settings.Scope = 0;
         var reloaded = JsonConvert.DeserializeObject<KillFeedbackSettings>(JsonConvert.SerializeObject(settings))!;
         Check(reloaded.Enabled && reloaded.Scope == 0, "both feedback settings survive JSON round-trip");
@@ -88,10 +88,20 @@ internal static partial class Program
         var scope = window.GetVisualDescendants().OfType<ComboBox>().Single(control => control.Name == "killFeedbackScope");
         Check(enabled.IsChecked == false && scope.SelectedIndex == 1 && !scope.IsEffectivelyEnabled,
             "launch-area feedback controls show the persisted defaults and disable scope while off");
-        var pistolToggle = window.GetVisualDescendants().OfType<CheckBox>().Single(control => control.Name == "autoPistolCheckBox");
+        var interpolationToggle = window.GetVisualDescendants().OfType<CheckBox>().Single(control => control.Name == "interpolationCheckBox");
+        interpolationToggle.IsChecked = true; PumpFrames();
+        Check(root.KillFeedback.InterpolationEnabled && transfer.KillFeedback.InterpolationEnabled && !root.KillFeedback.RequiresClientModule
+            && interpolationToggle.IsEffectivelyEnabled, "the interpolation checkbox is independent of feedback and shared by both assistant launch paths");
+        using var additional = new AdditionalFeaturesViewModel(explorer);
+        var additionalWindow = new AdditionalFeaturesWindow { ViewModel = additional };
+        additionalWindow.Show(window); PumpFrames();
+        var pistolToggle = additionalWindow.GetVisualDescendants().OfType<CheckBox>().Single(control => control.Name == "autoPistolCheckBox");
         pistolToggle.IsChecked = true; PumpFrames();
         Check(root.KillFeedback.AutoPistolEnabled && transfer.KillFeedback.AutoPistolEnabled && !root.KillFeedback.Enabled && !scope.IsEffectivelyEnabled,
-            "the independent pistol checkbox is shared by both launch paths without enabling the kill HUD");
+            "the additional-features pistol checkbox is shared by both launch paths without enabling the kill HUD");
+        Check(!window.GetVisualDescendants().OfType<CheckBox>().Any(control => control.Name == "autoPistolCheckBox"),
+            "pistol auto-click is tucked into additional features instead of occupying the ordinary startup controls");
+        additionalWindow.Close();
         enabled.IsChecked = true; scope.SelectedIndex = 0; PumpFrames();
         Check(root.KillFeedback.Enabled && transfer.KillFeedback.Scope == 0 && scope.IsEffectivelyEnabled,
             "launch-area checkbox and range selection bind through to both launch paths");
@@ -107,9 +117,18 @@ internal static partial class Program
         var console = new GameConsole(game, consoleDirectory, moduleDirectory);
         var launch = console.PrepareLaunch(new()); // Never start a game or load a game DLL.
         var args = Uri.UnescapeDataString(launch.FileName);
-        Check(!args.Contains("plugin_load") && !args.Contains("-insecure") && args.Contains("-netconport") && args.Contains("-netconpassword"),
-            "unchecked feedback preserves the original authenticated Steam console launch");
+        Check(!args.Contains("plugin_load") && !args.Contains("-insecure") && !args.Contains("+cl_interp") && args.Contains("-netconport") && args.Contains("-netconpassword"),
+            "unchecked startup options preserve the original launch without interpolation commands");
         Check(console.FeedbackRequest is null, "normal startup schedules no client helper when feedback is off");
+        var interpolationSettings = JsonConvert.DeserializeObject<KillFeedbackSettings>(
+            JsonConvert.SerializeObject(new KillFeedbackSettings { InterpolationEnabled = true }))!;
+        var interpolationConsole = new GameConsole(game, Path.Combine(bundle, "interpolation-console"), Path.Combine(bundle, "no-module"));
+        var interpolationLaunch = interpolationConsole.PrepareLaunch(interpolationSettings); // Inspect only; never start Steam or the game.
+        var interpolationArgs = Uri.UnescapeDataString(interpolationLaunch.FileName);
+        Check(interpolationSettings.InterpolationEnabled && !interpolationSettings.RequiresClientModule && interpolationConsole.FeedbackRequest is null
+            && interpolationArgs.Contains(" +cl_interp_ratio 1 +cl_interp 0.065/")
+            && !interpolationArgs.Contains("-insecure") && interpolationLaunch.UseShellExecute,
+            "a persisted interpolation-only preference adds exactly ratio 1 and interp 0.065 to normal Steam startup without native files");
         var port = int.Parse(Regex.Match(args, @"-netconport (\d+)").Groups[1].Value);
         var password = Regex.Match(args, @"-netconpassword ([A-F0-9]{64})").Groups[1].Value;
         using var server = new FakeGameConsole(game, port, password, "");

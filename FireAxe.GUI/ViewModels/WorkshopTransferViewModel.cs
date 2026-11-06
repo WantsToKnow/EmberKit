@@ -72,7 +72,8 @@ public sealed class WorkshopTransferViewModel : ViewModelBase, IDisposable
         {
             var console = CreateGameConsole();
             if (ModStorage.IsGameRunning(console.GameDirectory)) throw new InvalidOperationException("游戏已经运行。请先检查连接；若不是通过助手启动，需要退出游戏后再用此按钮启动一次。");
-            var feedback = new KillFeedbackSettings { Enabled = KillFeedback.Enabled, Scope = KillFeedback.Scope, AutoPistolEnabled = KillFeedback.AutoPistolEnabled };
+            var feedback = new KillFeedbackSettings { Enabled = KillFeedback.Enabled, Scope = KillFeedback.Scope,
+                AutoPistolEnabled = KillFeedback.AutoPistolEnabled, InterpolationEnabled = KillFeedback.InterpolationEnabled };
             var result = await _root.Storage.RefreshAsync(token);
             if (result.Pending || result.Warnings.Length > 0) throw new IOException("本地整理尚未完成：" + _root.Storage.Status);
             token.ThrowIfCancellationRequested();
@@ -188,6 +189,7 @@ public sealed class WorkshopTransferViewModel : ViewModelBase, IDisposable
         var queued = WorkshopManifest.QueueDownloads(_root, plan, ignoreWorkshopHash);
         Report = FormatSkips(plan.Skipped);
         Status = $"新建下载 {queued.Added.Length} 个；重试 {queued.Retried} 个；已有 {queued.AlreadyPresent} 个；跳过 {plan.Skipped.Length} 个。临时文件位于 firefox_temp；完成后自动归档和应用启用状态。"
+            + (queued.AnimationVariants > 0 ? $" 原版就绪后将处理 {queued.AnimationVariants} 条动画裁尾记录，原版与派生版均保留；结果见下载结果。" : "")
             + (ignoreWorkshopHash ? " 本批下载忽略工坊 Hash，仍检查 VPK 格式；大小不符仅记录警告。" : "");
     }
 

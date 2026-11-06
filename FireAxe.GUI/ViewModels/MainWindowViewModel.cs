@@ -333,7 +333,7 @@ public sealed class MainWindowViewModel : ViewModelBase, IActivatableViewModel, 
                     return;
                 }
 
-                explorerViewModel.GotoNode(msg.Target);
+                explorerViewModel.LocateNode(msg.Target);
                 _windowManager.MainWindow?.Activate();
             })
             .DisposeWith(_disposables);

@@ -6,7 +6,7 @@ namespace FireAxe;
 public enum WorkshopDownloadOutcome { Installed, Failed, Cancelled }
 public sealed record WorkshopDownloadResult(ulong Id, string Title, WorkshopDownloadOutcome Outcome,
     string? StorageFileName = null, string? Error = null, DateTimeOffset? FinishedAt = null, bool HashCheckSkipped = false,
-    bool RemovedFromHistory = false, string? RetainedFileName = null);
+    bool RemovedFromHistory = false, string? RetainedFileName = null, string? AnimationSummary = null);
 
 // Keep the latest completed attempt per workshop ID, independently of missing-node cleanup.
 public sealed class WorkshopDownloadHistory(AddonRoot root)
@@ -102,6 +102,12 @@ public sealed class WorkshopDownloadHistory(AddonRoot root)
     public string GetDisplayTitle(VpkAddon addon)
     {
         Load();
+        if (addon.AnimationEdits is { } edits)
+        {
+            if (addon.Inspection?.Title is { } title && !string.IsNullOrWhiteSpace(title) && !title.Trim().All(char.IsAsciiDigit)) return title.Trim();
+            if (edits.WorkshopId is { } original && _records.GetValueOrDefault(original)?.Title is { } originalTitle)
+                return originalTitle + " [Animation trim]";
+        }
         var record = WorkshopManifest.KnownId(addon) is { } id ? _records.GetValueOrDefault(id) : null;
         record ??= addon.StorageFileName is { } name
             ? _records.Values.FirstOrDefault(result => string.Equals(result.StorageFileName, name, StringComparison.OrdinalIgnoreCase)) : null;

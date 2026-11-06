@@ -10,8 +10,8 @@
         x:Class="FireAxe.Views.AddonProblemListWindow"
         x:DataType="vm:AddonProblemListViewModel"
         Title="{x:Static r:Texts.ProblemList}"
-        Width="700" Height="700"
-        WindowStartupLocation="CenterScreen">
+        Width="440" Height="650" MinWidth="400" MinHeight="360" ShowInTaskbar="False"
+        WindowStartupLocation="Manual">
   <DockPanel
     Margin="10">
     <DockPanel.Styles>
@@ -28,13 +28,15 @@
       LastChildFill="False"
       Margin="0, 0, 0, 5">
       <TabStrip
-        DockPanel.Dock="Left">
+        DockPanel.Dock="Left" SelectedIndex="0">
         <TabStripItem
           Name="problemsTab"
           Content="{x:Static r:Texts.Problems}"/>
         <TabStripItem
           Name="problematicAddonsTab"
           Content="{x:Static r:Texts.ProblematicAddons}"/>
+        <TabStripItem Name="mapAdvisoriesTab" Content="地图资源"
+                      IsVisible="{Binding MapAdvisoryViewModels.Count, Converter={x:Static conv:CollectionConverters.IsNotEmpty}}"/>
       </TabStrip>
 
       <StackPanel
@@ -81,6 +83,14 @@
       BorderThickness="2">
       <ScrollViewer>
         <Panel>
+          <StackPanel IsVisible="{Binding #mapAdvisoriesTab.IsSelected}" Margin="8" Spacing="10">
+            <TextBlock Text="地图 / 战役可以同时安装" FontWeight="SemiBold" Foreground="#9BC4EE"/>
+            <TextBlock Text="这些地图分包有同名共用资源，仅作兼容性提示，不代表无法共存。点击作品可定位，文件明细仍保留在完整冲突列表。"
+                       TextWrapping="Wrap" FontSize="12" Foreground="#A8BBD8"/>
+            <ItemsControl ItemsSource="{Binding MapAdvisoryViewModels}">
+              <ItemsControl.ItemTemplate><DataTemplate><v:AddonRefView/></DataTemplate></ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
           <Panel IsVisible="{Binding #problemsTab.IsSelected}">
             <ItemsControl
               ItemsSource="{Binding ProblemViewModels}">

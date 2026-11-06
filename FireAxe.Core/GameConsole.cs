@@ -36,6 +36,7 @@ public sealed class GameConsole(string gameDirectory, string? settingsDirectory 
         }
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
         var arguments = $"-netconport {settings.Port} -netconpassword {settings.Password}";
+        if (feedback?.InterpolationEnabled == true) arguments += " +cl_interp_ratio 1 +cl_interp 0.065";
         return new("steam://run/550//" + Uri.EscapeDataString(arguments) + "/") { UseShellExecute = true };
     }
 

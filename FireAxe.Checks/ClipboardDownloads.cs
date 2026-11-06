@@ -62,11 +62,11 @@ internal static partial class Program
         var queued = 0;
         root.NewDownloadItem += _ => queued++;
         ((ICommand)model.DownloadCommand).Execute(null);
-        Pump(() => !model.IsBusy && root.DownloadHistory.FindInstalled(51) is { IsGameSynchronized: true });
+        Pump(() => !model.IsBusy && root.DownloadHistory.FindInstalled(51) is { ContentHash: not null, IsGameSynchronized: false });
         Check(queued == 1 && root.DownloadHistory.GetResults().Single().HashCheckSkipped
-            && root.DownloadHistory.FindInstalled(51) is { IsEnabledInHierarchy: true, IsGameSynchronized: true }
+            && root.DownloadHistory.FindInstalled(51) is { IsEnabledInHierarchy: true, IsGameSynchronized: false }
             && model.DownloadResults.Single().CanOpenFile,
-            "clipboard downloads automatically enable and synchronize the installed mod, with shared history and hash comparison skipped");
+            "clipboard downloads select enabled but keep the mod pending, with shared history and hash comparison skipped");
         transfer.Close();
         window.Close();
         main.CloseDirectory();
