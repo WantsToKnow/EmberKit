@@ -1,6 +1,8 @@
 <!-- Modified for EmberKit; based on ktxiaok/FireAxe 0.7.3. -->
 # EmberKit
 
+**Readable-filename preview, based on v0.1.5.** Bodies use descriptive names in `modebackup`; `mod-index.txt` supplies filename/SHA-256 lookup for verified deduplication. Game entry names and manual application stay the same. See [preview usage](docs/readable-filenames-preview.zh-Hans.md).
+
 **[简体中文](README.zh-Hans.md)** · English
 
 A personal Windows fork of **[ktxiaok / FireAxe](https://github.com/ktxiaok/FireAxe)**, with a few additions to make installing Left 4 Dead 2 Workshop mods from a shared TXT list easier for new players.
@@ -13,7 +15,7 @@ Thank you to **ktxiaok**, the original FireAxe author, for developing and open-s
 - **Download visibility:** retain the existing progress/speed display and add persistent results with the final state, archived path, error details and an “open file location” action. Results can be removed; failed, uninstalled placeholders can also be deleted during gameplay, while installed mod files are retained. The mod list, search and detail panel reuse saved titles while keeping Workshop IDs visible. Failed, uninstalled items can be retried without duplicate records.
 - **Classification by replaced content:** inspect VPK resource paths for weapons, characters and other categories; keep empty slots visible, such as “Pistol 0”, and flag multiple replacements of the same slot.
 - **Reuse known directories:** infer and share the game directory across settings, imports and local-storage operations.
-- **A short-name local store:** consolidate bodies into `addons/modebackup/m000001.vpk` and similar unique ASCII names. `mod-index.txt` maps the short ID to its SHA-256, display name, original title, Workshop ID, paths and enabled state. Only byte-identical bodies are deduplicated.
+- **A readable local store:** save physical bodies as `addons/modebackup/AK-47 - Example Skin.vpk`. Different contents with one title get numbered suffixes. `mod-index.txt` records filename/SHA-256 pairs for duplicate lookup; candidate bytes are verified before reuse. Old numbered bodies migrate on explicit organization/application, while game entry names remain short.
 - **Manually applied game entries:** editable switches save enabled/disabled choices and stay pending both during and outside gameplay. Toggles, priorities, downloads and imports do not trigger full scans or entry writes; game exit and reopening the manager do not apply pending changes. Apply Mod commits them together, using short relative `.vpk` symbolic links from `addons` to `modebackup`. Explicit organization, sync and assistant startup also synchronize entries. Existing hard links are converted during sync, without an automatic fallback. Windows `.lnk` shortcuts are not game-loading entries.
 - **Clipboard links use the shared downloader:** accepting a detected Workshop link opens Link Downloads with the URL filled in. Review it and click Add to download queue; progress and results use the same workflow as manual links and TXT imports.
 - **A hash option and retained downloads:** link downloads, clipboard links and TXT imports skip the Workshop SHA-1 comparison by default. Clear the option to enable strict comparison. A Steam metadata size mismatch is a warning; valid VPKs still install. Failed downloads retain available files with a location action in the results. VPK-format checks and SHA-256 storage identity remain.
@@ -42,7 +44,7 @@ dotnet run --project FireAxe.Checks/FireAxe.Checks.csproj -c Release
 powershell -ExecutionPolicy Bypass -File scripts/package-windows.ps1
 ```
 
-The checks create their own temporary VPKs, simulated game directories, a simulated console and headless UI previews; the normal check command does not operate on an installed game. The current suite has **373 checks**, plus native animation, input-state, texture-lifecycle, attribution and isolated-loader checks via `scripts/build-feedback.ps1 -RunChecks`. Animation exports use the game's VPK 1 layout and verify every entry's CRC before publishing. Game effects require a separate in-game test.
+The checks create their own temporary VPKs, simulated game directories, a simulated console and headless UI previews; the normal check command does not operate on an installed game. The preview suite has **387 checks**, plus native animation, input-state, texture-lifecycle, attribution and isolated-loader checks via `scripts/build-feedback.ps1 -RunChecks`. Animation exports use the game's VPK 1 layout and verify every entry's CRC before publishing. Game effects require a separate in-game test.
 
 The package script produces a self-contained `publish/EmberKit-Windows-x64-Portable` folder and matching ZIP; fully extract the archive and run `EmberKit.exe`. Packages start with an empty `data` directory. Optional `-WorkshopListPath` includes a TXT list, and `-OutputDirectory` selects a fresh output folder. Existing output folders and ZIPs are rejected to avoid packaging personal state. Internal assemblies and namespaces retain the upstream FireAxe names for compatibility.
 

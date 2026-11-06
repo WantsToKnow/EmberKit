@@ -65,7 +65,7 @@ public abstract class VpkAddon : AddonNode
         get;
         internal set
         {
-            if (value is not null && !ModStorage.IsBodyName(value)) throw new ArgumentException("无效的备份短文件名。", nameof(value));
+            if (value is not null && !ModStorage.IsBodyName(value)) throw new ArgumentException("无效的备份文件名。", nameof(value));
             if (NotifyAndSetIfChanged(ref field, value))
             {
                 NotifyChanged(nameof(VpkFilePath));

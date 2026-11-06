@@ -148,6 +148,12 @@ internal static partial class Program
         AppBuilder.Configure<App>().UseSkia().UseHeadless(new() { UseHeadlessDrawing = false }).UseReactiveUI().SetupWithoutStarting();
         Application.Current!.RequestedThemeVariant = ThemeVariant.Dark;
         SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext());
+        if (args.Contains("--readable-storage-only"))
+        {
+            CheckReadableStorage(output);
+            Console.WriteLine($"PASS: {_checks} readable-storage checks");
+            return;
+        }
         if (args.Contains("--unified-storage-only"))
         {
             CheckUnifiedStorage(output);
@@ -298,6 +304,7 @@ internal static partial class Program
         CheckVersionTwo(output, root, explorer);
         CheckWorkshopCollections();
         CheckUnifiedStorage(output);
+        CheckReadableStorage(output);
         CheckMainMenuReload(output);
         CheckCategoryDashboard(output);
         CheckProblemNavigation(output);

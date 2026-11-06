@@ -9,9 +9,49 @@ public static class ModBackupIndex
 {
     public const string FileName = "mod-index.txt";
 
+    private static Dictionary<string, string> ReadStoredHashes(string addons, List<string> warnings)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var path = Path.Combine(addons, ModOrganizer.BackupDirectory, FileName);
+        if (new FileInfo(path).LinkTarget is not null) throw new IOException("TXT 对照表是文件链接，未读取。");
+        if (!File.Exists(path)) return result;
+        string? hash = null;
+        foreach (var line in File.ReadLines(path))
+        {
+            if (line.StartsWith("SHA-256：", StringComparison.Ordinal))
+            {
+                var value = line[8..].Trim();
+                hash = ModOrganizer.IsContentName(value + ".vpk") ? value.ToUpperInvariant() : null;
+            }
+            else if (line.StartsWith("备份本体：", StringComparison.Ordinal) && hash is not null)
+            {
+                var relative = line[5..].Trim().Replace('/', Path.DirectorySeparatorChar);
+                var name = Path.GetFileName(relative);
+                if (Path.GetDirectoryName(relative) != ModOrganizer.BackupDirectory || !ModStorage.IsBodyName(name))
+                { warnings.Add("TXT 中的本体文件名无效，已跳过：" + relative); continue; }
+                if (result.TryGetValue(name, out var previous) && previous != hash)
+                    warnings.Add("TXT 中同名本体对应不同 Hash，已保留首条记录：" + name);
+                else result[name] = hash;
+                hash = null;
+            }
+        }
+        return result;
+    }
+
+    internal static async Task RecordBodyAsync(string addons, string name, string hash, CancellationToken token)
+    {
+        var recorded = ReadStoredHashes(addons, []);
+        if (recorded.GetValueOrDefault(name) == hash) return;
+        var path = Path.Combine(addons, ModOrganizer.BackupDirectory, FileName);
+        if (!File.Exists(path)) await File.WriteAllTextAsync(path, "EmberKit Mod 文件名—Hash 对照表\n\n", new UTF8Encoding(false), token);
+        await File.AppendAllLinesAsync(path, ["SHA-256：" + hash, "备份本体：" + Path.Combine(ModOrganizer.BackupDirectory, name), ""], new UTF8Encoding(false), token);
+    }
+
     internal static Dictionary<string, string> ReadOriginalPaths(string addons, List<string> warnings, Dictionary<string, string>? storedHashes = null)
     {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (storedHashes is not null)
+            foreach (var pair in ReadStoredHashes(addons, warnings)) storedHashes[pair.Key] = pair.Value;
         var journal = Path.Combine(addons, ModOrganizer.BackupDirectory, "organizer-history.jsonl");
         if (new FileInfo(journal).LinkTarget is not null) throw new IOException("整理记录是文件链接，未执行恢复。");
         if (!File.Exists(journal)) return result;
@@ -21,14 +61,14 @@ public static class ModBackupIndex
             {
                 using var record = JsonDocument.Parse(line);
                 var source = record.RootElement.GetProperty("source").GetString();
-                var hash = record.RootElement.GetProperty("hash").GetString();
+                var hash = record.RootElement.GetProperty("hash").GetString()?.ToUpperInvariant();
                 if (string.IsNullOrEmpty(source) || string.IsNullOrEmpty(hash) || !ModOrganizer.IsContentName(hash + ".vpk"))
                     throw new InvalidDataException("原路径或 Hash 不完整");
                 result[WorkshopBackup.Inside(addons, source)] = hash;
                 if (storedHashes is not null && record.RootElement.TryGetProperty("body", out var value) && value.GetString() is { } body && ModStorage.IsBodyName(body))
                 {
                     if (storedHashes.TryGetValue(body, out var previous) && !previous.Equals(hash, StringComparison.OrdinalIgnoreCase))
-                        throw new InvalidDataException("短编号对应不同 Hash：" + body);
+                        throw new InvalidDataException("本体文件名对应不同 Hash：" + body);
                     storedHashes[body] = hash;
                 }
             }
@@ -48,7 +88,7 @@ public static class ModBackupIndex
         var warnings = new List<string>();
         var originals = ReadOriginalPaths(addons, warnings);
         var entries = ModOrganizer.ReadEntries(GamePathUtils.GetAddonListPath(gamePath));
-        var lines = new List<string> { "FireAxe Mod 备份对照表", "说明：m000001 等短编号用于辨认文件；完整 SHA-256 用于内容校验和去重，与编号独立保存。", "路径以游戏 addons 为基准。文件编号取自原 VPK 文件名，未联网核验工坊来源。", "本表自动记录短编号、完整 Hash、原始标题、管理器显示名称（含中文原名，如有）、作用和来源。", "游戏入口统一使用指向 modebackup 本体的相对符号链接，不额外复制 VPK；资源管理器通常显示 0 KB。", "此文件随本地同步自动更新；.addonroot 与 organizer-history.jsonl 保留短编号和 Hash 映射。", "" };
+        var lines = new List<string> { "EmberKit Mod 文件名—Hash 对照表", "说明：本体以替换对象和 Mod 标题命名；相同名称的不同内容使用序号区分。", "SHA-256 与备份本体两行组成文件名—Hash 对；导入时按此表查找重复候选，再核验实际内容。", "路径以游戏 addons 为基准。", "本表记录文件名、完整 Hash、原始标题、管理器显示名称、作用和来源。", "游戏入口仍使用短名相对符号链接，不额外复制 VPK；资源管理器通常显示 0 KB。", "此文件随入库和手动应用更新；.addonroot 与 organizer-history.jsonl 保留恢复记录。", "" };
         if (bodies is null)
         {
             var recovered = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -85,7 +125,7 @@ public static class ModBackupIndex
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
             { title = "读取失败：" + ex.Message.ReplaceLineEndings(" "); }
-            lines.AddRange(["========================================", "独立 ID：" + Path.GetFileNameWithoutExtension(body),
+            lines.AddRange(["========================================", "本体文件名：" + Path.GetFileName(body),
                 "管理器显示名称：" + (node?.Name.ReplaceLineEndings(" ") ?? title), "Mod 名称 / 原始标题：" + title, "替换对象 / 作用：" + targets,
                 "文件编号 / 工坊 ID：" + (ids.Length == 0 ? "未记录" : string.Join("、", ids)),
                 "本体大小：" + (length.HasValue ? (length.Value / 1024d / 1024d).ToString("F2") + " MiB" : "无法读取"),
