@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using System.Reactive.Threading.Tasks;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -36,8 +37,50 @@ internal static partial class Program
             "one main-window click dispatches the assistant launch action; the check intercepts it without starting a game");
     }
 
+    private static void CheckLaunchWithoutApply(string output)
+    {
+        var game = Path.Combine(output, "launch-without-apply-" + Guid.NewGuid().ToString("N")[..8]);
+        var addons = Path.Combine(game, "left4dead2", "addons");
+        Directory.CreateDirectory(addons);
+        var root = new AddonRoot { DirectoryPath = addons, GamePath = game, TaskScheduler = TaskScheduler.FromCurrentSynchronizationContext(), DownloadService = new FixtureDownloads([]) };
+        LocalVpkAddon oldMod, newMod;
+        using (root.BlockAutoCheck())
+        {
+            oldMod = AddonNode.Create<LocalVpkAddon>(root); oldMod.Name = "old-pistol"; oldMod.IsEnabled = true;
+            newMod = AddonNode.Create<LocalVpkAddon>(root); newMod.Name = "new-mp5"; newMod.IsEnabled = false;
+            WriteVpk(oldMod.VpkFilePath!, "旧手枪", "models/v_models/v_pistola.mdl");
+            WriteVpk(newMod.VpkFilePath!, "新 MP5", "models/v_models/v_smg_mp5.mdl");
+        }
+        Complete(root.Storage.RefreshAsync());
+        oldMod.IsEnabled = false; newMod.IsEnabled = true;
+        root.KillFeedback.Enabled = false; root.KillFeedback.AutoPistolEnabled = false; root.KillFeedback.InterpolationEnabled = true;
+        root.Save();
+        // A full organization would warn about this file and block startup. Never start Steam in checks.
+        File.WriteAllText(Path.Combine(addons, "unorganized.vpk"), "invalid fixture");
+        string State(string path) => new FileInfo(path).LastWriteTimeUtc.Ticks + ":" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) + ":" + new FileInfo(path).LinkTarget;
+        var before = Directory.EnumerateFiles(game, "*", SearchOption.AllDirectories).ToDictionary(path => path, State);
+        System.Diagnostics.ProcessStartInfo? requested = null;
+        var requests = 0;
+        using (var model = new WorkshopTransferViewModel(root, 5, info => { requested = info; requests++; return null; }))
+        {
+            Complete(model.LaunchGameCommand.Execute().ToTask());
+            Check(requests == 1 && requested?.FileName.StartsWith("steam://run/550//") == true && model.Status.StartsWith("已交给 Steam"),
+                "assistant startup reaches the Steam handoff even with unapplied changes and an invalid unorganized VPK");
+            Check(!oldMod.IsEnabled && newMod.IsEnabled && !newMod.IsGameSynchronized
+                && Directory.EnumerateFiles(game, "*", SearchOption.AllDirectories).Count() == before.Count
+                && before.All(pair => File.Exists(pair.Key) && State(pair.Key) == pair.Value),
+                "startup leaves pending choices, every body, link, game list, index and library metadata unchanged");
+            var arguments = Uri.UnescapeDataString(requested!.FileName);
+            Check(arguments.Contains("-netconport ") && arguments.Contains("-netconpassword ")
+                && arguments.Contains("+cl_interp_ratio 1 +cl_interp 0.065") && !arguments.Contains("-insecure"),
+                "startup without mod application still prepares the authenticated connection and requested interpolation settings");
+        }
+        Complete(root.DisposeAsync().AsTask());
+    }
+
     private static void CheckMainMenuReload(string output)
     {
+        CheckLaunchWithoutApply(output);
         var game = Path.Combine(output, "reload-" + Guid.NewGuid().ToString("N")[..8]);
         var addons = Path.Combine(game, "left4dead2", "addons");
         Directory.CreateDirectory(addons);

@@ -31,7 +31,7 @@
           </StackPanel>
           <Button Name="launchGameButton" Command="{Binding LaunchGameCommand}" Background="#B8E99B" Foreground="#142112"
                   BorderBrush="#B8E99B" CornerRadius="7" Padding="8,6" MinHeight="48" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                  ToolTip.Tip="通过 Steam 启动游戏，并建立一键应用所需的连接。">
+                  ToolTip.Tip="直接通过 Steam 启动并建立连接；使用上次已应用的 Mod，待应用改动需手动点击「应用 Mod」。">
             <StackPanel Spacing="2">
               <TextBlock Text="▶ 从助手启动游戏" FontSize="14" FontWeight="Bold"/>
               <TextBlock Text="求生之路 2" FontSize="11" Opacity="0.8" HorizontalAlignment="Center"/>
@@ -47,7 +47,7 @@
                 <ComboBoxItem Content="所有僵尸"/>
                 <ComboBoxItem Content="仅特感（含 Tank / Witch）"/>
               </ComboBox>
-              <TextBlock Text="普通启动；设置在下次启动生效。" Foreground="#A8BBD8" FontSize="11" TextWrapping="Wrap"/>
+              <TextBlock Text="普通启动；Mod 改动需手动应用。" Foreground="#A8BBD8" FontSize="11" TextWrapping="Wrap"/>
             </StackPanel>
           </Expander>
           <StackPanel Spacing="7">

@@ -126,7 +126,7 @@
             </StackPanel>
             <CheckBox Name="workshopInterpolationCheckBox" Content="联机插值预设（65 ms）" IsChecked="{Binding KillFeedback.InterpolationEnabled}"
                       ToolTip.Tip="下次通过助手启动时执行 cl_interp_ratio 1; cl_interp 0.065。服务器可能限制实际插值。"/>
-            <TextBlock Text="沿用普通 Steam 启动；插值预设在启动时执行，击杀反馈 / 连点按勾选加载客户端模块。修改设置后下次启动生效。"
+            <TextBlock Text="直接通过 Steam 启动，Mod 改动需手动点击「应用 Mod」。插值预设、击杀反馈 / 连点按勾选在下次启动生效。"
                        TextWrapping="Wrap" Foreground="#98A8BE"/>
             <StackPanel Orientation="Horizontal" Spacing="8">
               <Button Content="通过助手启动游戏" Command="{Binding LaunchGameCommand}"/>

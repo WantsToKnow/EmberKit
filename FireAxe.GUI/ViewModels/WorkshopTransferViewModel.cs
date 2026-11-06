@@ -20,7 +20,7 @@ public sealed class WorkshopTransferViewModel : ViewModelBase, IDisposable
     private CancellationTokenSource? _operation;
     private bool _disposed;
 
-    public WorkshopTransferViewModel(AddonRoot root, int tab = 0)
+    public WorkshopTransferViewModel(AddonRoot root, int tab = 0, Func<ProcessStartInfo, Process?>? startGame = null)
     {
         _root = root;
         SelectedTab = tab;
@@ -74,13 +74,11 @@ public sealed class WorkshopTransferViewModel : ViewModelBase, IDisposable
             if (ModStorage.IsGameRunning(console.GameDirectory)) throw new InvalidOperationException("游戏已经运行。请先检查连接；若不是通过助手启动，需要退出游戏后再用此按钮启动一次。");
             var feedback = new KillFeedbackSettings { Enabled = KillFeedback.Enabled, Scope = KillFeedback.Scope,
                 AutoPistolEnabled = KillFeedback.AutoPistolEnabled, InterpolationEnabled = KillFeedback.InterpolationEnabled };
-            var result = await _root.Storage.RefreshAsync(token);
-            if (result.Pending || result.Warnings.Length > 0) throw new IOException("本地整理尚未完成：" + _root.Storage.Status);
             token.ThrowIfCancellationRequested();
-            using var process = Process.Start(console.PrepareLaunch(feedback));
+            using var process = (startGame ?? Process.Start)(console.PrepareLaunch(feedback));
             GameConnectionStatus = feedback.RequiresClientModule
                 ? "已按普通方式交给 Steam 启动；正在等待本次游戏连接并加载自产客户端反馈模块…"
-                : "已交给 Steam 启动，请等游戏主菜单出现，再检查连接或应用 Mod。";
+                : "已交给 Steam 启动；Mod 改动仍需手动点击「应用 Mod」。请等主菜单出现，再检查连接。";
             Status = GameConnectionStatus;
             if (feedback.RequiresClientModule)
             {
