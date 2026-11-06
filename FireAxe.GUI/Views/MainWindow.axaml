@@ -11,7 +11,7 @@
         x:Class="FireAxe.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/AppLogo.ico"
-        Title="{Binding TitleExtraInfo, StringFormat='EmberKit · 文件名试验版{0}'}"
+        Title="{Binding TitleExtraInfo, StringFormat=EmberKit{0}}"
         WindowStartupLocation="CenterScreen"
         Width="1400" Height="850" MinWidth="1100" MinHeight="680">
   <DockPanel>

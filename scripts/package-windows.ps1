@@ -23,7 +23,7 @@ foreach ($name in @('LICENSE.txt', 'NOTICE.txt', 'README.md', 'README.zh-Hans.md
 $docs = Join-Path $output 'docs'
 New-Item -ItemType Directory -Path $docs -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $project 'docs\usage.zh-Hans.md') -Destination $docs -Force
-Copy-Item -LiteralPath (Join-Path $project 'docs\readable-filenames-preview.zh-Hans.md') -Destination $docs -Force
+Copy-Item -LiteralPath (Join-Path $project 'docs\readable-filenames.zh-Hans.md') -Destination $docs -Force
 New-Item -ItemType Directory -Path (Join-Path $output 'data') | Out-Null
 if ($WorkshopListPath) {
     Copy-Item -LiteralPath $WorkshopListPath -Destination (Join-Path $output ([IO.Path]::GetFileName($WorkshopListPath)))

@@ -1,7 +1,7 @@
 <!-- Modified for EmberKit; based on ktxiaok/FireAxe 0.7.3. -->
 # EmberKit
 
-**Readable-filename preview, based on v0.1.5.** Bodies use descriptive names in `modebackup`; `mod-index.txt` supplies filename/SHA-256 lookup for verified deduplication. Game entry names and manual application stay the same. See [preview usage](docs/readable-filenames-preview.zh-Hans.md).
+**v0.1.6 includes readable mod filenames.** Bodies use descriptive names in `modebackup`; `mod-index.txt` supplies filename/SHA-256 lookup for verified deduplication. Game entry names and manual application stay the same. See [filename storage](docs/readable-filenames.zh-Hans.md).
 
 **[简体中文](README.zh-Hans.md)** · English
 
@@ -44,7 +44,7 @@ dotnet run --project FireAxe.Checks/FireAxe.Checks.csproj -c Release
 powershell -ExecutionPolicy Bypass -File scripts/package-windows.ps1
 ```
 
-The checks create their own temporary VPKs, simulated game directories, a simulated console and headless UI previews; the normal check command does not operate on an installed game. The preview suite has **387 checks**, plus native animation, input-state, texture-lifecycle, attribution and isolated-loader checks via `scripts/build-feedback.ps1 -RunChecks`. Animation exports use the game's VPK 1 layout and verify every entry's CRC before publishing. Game effects require a separate in-game test.
+The checks create their own temporary VPKs, simulated game directories, a simulated console and headless UI previews; the normal check command does not operate on an installed game. The current suite has **387 checks**, plus native animation, input-state, texture-lifecycle, attribution and isolated-loader checks via `scripts/build-feedback.ps1 -RunChecks`. Animation exports use the game's VPK 1 layout and verify every entry's CRC before publishing. Game effects require a separate in-game test.
 
 The package script produces a self-contained `publish/EmberKit-Windows-x64-Portable` folder and matching ZIP; fully extract the archive and run `EmberKit.exe`. Packages start with an empty `data` directory. Optional `-WorkshopListPath` includes a TXT list, and `-OutputDirectory` selects a fresh output folder. Existing output folders and ZIPs are rejected to avoid packaging personal state. Internal assemblies and namespaces retain the upstream FireAxe names for compatibility.
 

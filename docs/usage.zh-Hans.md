@@ -1,6 +1,6 @@
 # 从 TXT 开始安装 Mod
 
-当前为文件名试验版。新本体使用可读名称，旧短编号在手动整理 / 应用时迁移；见[试验版说明](readable-filenames-preview.zh-Hans.md)。
+本体使用可读名称，旧短编号在手动整理 / 应用时迁移；见[文件名存储说明](readable-filenames.zh-Hans.md)。
 
 1. 完整解压软件文件夹，运行 `EmberKit.exe`；保留同目录中的其他文件。
 2. 在“文件 → 打开目录”中选择游戏的 `left4dead2/addons`。到“本地存储”核对自动填入的游戏根目录，它应是包含 `left4dead2` 的那一层。

@@ -1,7 +1,7 @@
 <!-- Modified for EmberKit; based on ktxiaok/FireAxe 0.7.3. -->
 # EmberKit
 
-**当前为文件名试验版，基于稳定版 v0.1.5。** backup 本体改用可读名称，通过 `mod-index.txt` 保存文件名—SHA-256 对并查重；游戏入口和手动应用保持原有方式。详见[试验版使用说明](docs/readable-filenames-preview.zh-Hans.md)。
+**v0.1.6 采用可读文件名。** backup 本体通过 `mod-index.txt` 保存文件名—SHA-256 对并查重；游戏入口和手动应用保持原有方式。详见[文件名存储说明](docs/readable-filenames.zh-Hans.md)。
 
 简体中文 · **[English](README.md)**
 
@@ -49,7 +49,7 @@ dotnet run --project FireAxe.Checks/FireAxe.Checks.csproj -c Release
 powershell -ExecutionPolicy Bypass -File scripts/package-windows.ps1
 ```
 
-普通自检命令只创建临时 VPK、模拟游戏目录、模拟控制台和无桌面的界面预览，不操作真实游戏目录。试验版共有 **387 项检查**；`scripts/build-feedback.ps1 -RunChecks` 另覆盖原生动画、输入状态、纹理生命周期、归属和隔离进程装载。动画导出采用游戏支持的 VPK 1 布局，发布前验证所有文件 CRC；游戏内效果仍需另外实测。
+普通自检命令只创建临时 VPK、模拟游戏目录、模拟控制台和无桌面的界面预览，不操作真实游戏目录。当前共有 **387 项检查**；`scripts/build-feedback.ps1 -RunChecks` 另覆盖原生动画、输入状态、纹理生命周期、归属和隔离进程装载。动画导出采用游戏支持的 VPK 1 布局，发布前验证所有文件 CRC；游戏内效果仍需另外实测。
 
 打包脚本输出 `publish/EmberKit-Windows-x64-Portable` 文件夹和同名 ZIP，自带运行库，完整解压后运行其中的 `EmberKit.exe`。默认只打包空白 `data`；可用 `-WorkshopListPath` 附带 TXT 清单，用 `-OutputDirectory` 指定新的输出目录。为避免夹带个人配置，脚本不会复用已存在的输出目录或 ZIP。内部程序集与命名空间保留 FireAxe 名称以兼容原项目。
 

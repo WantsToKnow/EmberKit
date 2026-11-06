@@ -61,7 +61,7 @@
               <Button Grid.Column="1" Content="选择游戏目录…" Command="{Binding ChooseGameCommand}"/>
             </Grid>
             <TextBlock Text="仅删除 SHA-256 完全相同的重复实体。不同枪皮、角色外观即使替换同一对象，也不会被当作重复删除。" TextWrapping="Wrap" Foreground="#FFBE72"/>
-            <TextBlock Text="文件名试验版：本体以「替换对象 - Mod 标题.vpk」保存在 modebackup，同名不同内容追加序号。mod-index.txt 保存文件名—SHA-256 对，用于查找重复文件并核验内容。" TextWrapping="Wrap"/>
+            <TextBlock Text="本体以「替换对象 - Mod 标题.vpk」保存在 modebackup，同名不同内容追加序号。mod-index.txt 保存文件名—SHA-256 对，用于查找重复文件并核验内容。" TextWrapping="Wrap"/>
             <TextBlock Text="游戏入口统一使用短 Hash 名的相对符号链接（通常显示 0 KB），指向可读名称的本体，不额外复制 Mod 内容。旧硬链接会在同步时转换；删除入口会保留备份本体。" TextWrapping="Wrap" Foreground="#98A8BE"/>
             <TextBlock Text="这是可供游戏读取的 .vpk 符号链接，不是 Windows 的 .lnk 快捷方式。创建失败时会提示原因，不自动改用硬链接。" TextWrapping="Wrap" Foreground="#98A8BE"/>
             <TextBlock Text="无效、占用中和指向外部目录的文件会跳过。此功能不解压 ZIP/7z，不整理 addons 之外的模组库。" TextWrapping="Wrap" Foreground="#98A8BE"/>
