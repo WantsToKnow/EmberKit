@@ -1,5 +1,10 @@
 using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using FireAxe;
+using FireAxe.Views;
 
 internal static partial class Program
 {
@@ -44,7 +49,39 @@ internal static partial class Program
                 "game connection settings use portable data without creating files in the launch directory");
             Check(CommonVpkAddonConflictIgnoringFiles.HalfLife2.Count > 0,
                 "bundled conflict rules are found independently of the launch directory");
+            CheckStorageNotice(app, settings, output);
         }
         finally { Environment.CurrentDirectory = previousDirectory; }
+    }
+
+    private static void CheckStorageNotice(App app, AppSettings settings, string output)
+    {
+        settings.SkipStorageNotice = false;
+        var owner = new Window { Width = 720, Height = 500 };
+        owner.Show();
+        var first = CommonMessageBoxes.ShowStorageNoticeAsync(owner, settings);
+        PumpFrames();
+        var dialog = owner.OwnedWindows.Single();
+        Check(dialog.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text?.Contains("addons/modebackup") == true
+            && text.Text.Contains("备份整个 addons")) && dialog.GetVisualDescendants().OfType<CheckBox>().Single().IsChecked == false,
+            "the startup notice explains where bodies are collected and suggests backing up the original folder layout");
+        using (var preview = dialog.CaptureRenderedFrame()!) preview.Save(Path.Combine(output, "storage-notice-preview.png"));
+        dialog.Close();
+        Complete(first);
+
+        var second = CommonMessageBoxes.ShowStorageNoticeAsync(owner, settings);
+        PumpFrames();
+        Check(!settings.SkipStorageNotice && owner.OwnedWindows.Count() == 1,
+            "dismissal without opting out leaves the notice enabled at the next startup");
+        dialog = owner.OwnedWindows.Single();
+        dialog.GetVisualDescendants().OfType<CheckBox>().Single().IsChecked = true;
+        dialog.GetVisualDescendants().OfType<Button>().Single(button => Equals(button.Content, "知道了"))
+            .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Complete(second);
+        using var reloaded = new AppSettings(app);
+        var next = CommonMessageBoxes.ShowStorageNoticeAsync(owner, reloaded);
+        Check(reloaded.SkipStorageNotice && next.IsCompletedSuccessfully && !owner.OwnedWindows.Any(),
+            "checking the opt-out saves it immediately and suppresses the notice with reloaded settings");
+        owner.Close();
     }
 }

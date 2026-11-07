@@ -90,6 +90,16 @@ public sealed class AppSettings : ObservableObject, ISaveable, IDisposable
     [JsonProperty]
     public KillFeedbackSettings KillFeedback { get; } = new();
 
+    [JsonProperty]
+    public bool SkipStorageNotice
+    {
+        get;
+        set
+        {
+            if (NotifyAndSetIfChanged(ref field, value)) RequestSave = true;
+        }
+    }
+
     public string SettingsFilePath => _settingsFilePath;
 
     public string CustomVpkAddonConflictIgnoringFilesDirectoryPath => Path.Join(_app.DataDirectoryPath, CustomVpkAddonConflictIgnoringFilesDirectoryName);

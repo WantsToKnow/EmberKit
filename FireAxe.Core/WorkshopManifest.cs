@@ -103,8 +103,10 @@ public static class WorkshopManifest
         if (addon.AnimationEdits is not null) return null; // A derived package is not the downloadable original.
         if (addon is WorkshopVpkAddon { PublishedFileId: > 0 } workshop) return workshop.PublishedFileId;
         if (ulong.TryParse(addon.Name, NumberStyles.None, CultureInfo.InvariantCulture, out var id) && id > 0) return id;
-        if (ulong.TryParse(Path.GetFileNameWithoutExtension(addon.VpkFilePath), NumberStyles.None, CultureInfo.InvariantCulture, out id) && id > 0) return id;
-        var ids = addon.OriginalPaths.Select(path => Regex.Match(Path.GetFileName(path), @"^(\d+)(?:_[a-z0-9]+)?\.vpk$", RegexOptions.IgnoreCase))
+        if (!ModStorage.IsBankBodyPath(addon.VpkFilePath)
+            && ulong.TryParse(Path.GetFileNameWithoutExtension(addon.VpkFilePath), NumberStyles.None, CultureInfo.InvariantCulture, out id) && id > 0) return id;
+        var ids = addon.OriginalPaths.Where(path => !ModStorage.IsBankBodyPath(path))
+            .Select(path => Regex.Match(Path.GetFileName(path), @"^(\d+)(?:_[a-z0-9]+)?\.vpk$", RegexOptions.IgnoreCase))
             .Where(match => match.Success && ulong.TryParse(match.Groups[1].Value, out _)).Select(match => ulong.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture)).Where(value => value > 0).Distinct().ToArray();
         return ids.Length == 1 ? ids[0] : null;
     }

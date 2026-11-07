@@ -15,22 +15,25 @@ internal static partial class Program
         var root = new AddonRoot { DirectoryPath = addons, GamePath = game, TaskScheduler = scheduler };
         var imported = Complete(root.Storage.ImportLocalVpkAsync([firstSource, secondSource]));
         var first = imported.Imported[0]; var second = imported.Imported[1];
-        Check(first.StorageFileName == "AK-47 - 同名枪皮.vpk" && second.StorageFileName == "AK-47 - 同名枪皮 (2).vpk",
-            "readable body names describe the replaced object and title; same-title different content gets a numbered filename");
+        Check(first.StorageFileName == "0.vpk" && second.StorageFileName == "1.vpk",
+            "same-title different VPKs receive consecutive numeric IDs from zero");
         Check(File.ReadAllBytes(first.VpkFilePath!).SequenceEqual(firstBytes) && File.ReadAllBytes(second.VpkFilePath!).SequenceEqual(secondBytes)
             && new FileInfo(first.VpkFilePath!).LinkTarget is null && new FileInfo(second.VpkFilePath!).LinkTarget is null,
-            "readable files in modebackup are unchanged physical VPK bodies");
+            "numbered files in modebackup are unchanged physical VPK bodies");
         var index = Path.Combine(root.Storage.BackupPath, ModBackupIndex.FileName);
-        Check(File.ReadAllText(index).Contains("备份本体：" + Path.Combine("modebackup", first.StorageFileName!))
-            && File.ReadAllText(index).Contains("SHA-256：" + first.ContentHash),
-            "filename-hash pairs are written to TXT immediately on import, before game application");
+        var importedIndex = File.ReadAllText(index).ReplaceLineEndings("\n");
+        Check(importedIndex.Contains($"数字编号：0\n本体文件名：0.vpk\n可读名称：同名枪皮\nSHA-256：{first.ContentHash}\n备份本体：modebackup\\0.vpk")
+            && importedIndex.Contains($"数字编号：1\n本体文件名：1.vpk\n可读名称：同名枪皮\nSHA-256：{second.ContentHash}"),
+            "TXT immediately maps each numeric body ID to its title and actual complete hash");
         Check(!first.IsGameSynchronized && !File.Exists(Path.Combine(addons, ModStorage.EntryName(first.ContentHash!))),
-            "readable naming preserves pending-only imports and does not automatically create game entries");
+            "numbered imports stay pending and do not automatically create game entries");
         Complete(root.Storage.RefreshAsync());
         var entry = Path.Combine(addons, ModStorage.EntryName(first.ContentHash!));
         Check(Path.GetFileName(entry).Length == 32 && new FileInfo(entry).LinkTarget == Path.Combine("modebackup", first.StorageFileName!)
             && FileSystemUtils.IsSameFile(entry, first.VpkFilePath!),
-            "game entries retain short hash names and relative links even when their targets have Chinese descriptive names");
+            "game entries retain short hash names and relative links to numbered bodies");
+        Check(WorkshopManifest.KnownId(second) is null,
+            "the numbered body and its recorded bank path cannot be mistaken for a Workshop ID");
         first.IsEnabled = false; first.CatalogTargetId = "m16"; first.Priority = 17;
         var duplicate = Complete(root.Storage.ImportLocalVpkAsync([firstSource]));
         Check(duplicate.Existing.Single() == first && !first.IsEnabled && first.Priority == 17 && first.CatalogTargetId == "m16"
@@ -39,14 +42,14 @@ internal static partial class Program
         var name = first.StorageFileName;
         Complete(root.Storage.RefreshAsync()); Complete(root.Storage.RefreshAsync());
         Check(first.StorageFileName == name && Directory.GetFiles(root.Storage.BackupPath, "*.vpk").Length == 2,
-            "repeated explicit scans preserve readable names without growing suffixes");
+            "repeated explicit scans preserve assigned numeric IDs");
         root.Save(); var saved = root.CreateSave();
         Complete(root.DisposeAsync().AsTask());
         root = new AddonRoot { DirectoryPath = addons, GamePath = game, TaskScheduler = scheduler };
         root.LoadSave(saved); root.Storage.CheckDeployment();
         first = root.GetDescendants().OfType<VpkAddon>().Single(node => node.ContentHash == Convert.ToHexString(SHA256.HashData(firstBytes)));
         Check(first.StorageFileName == name && !first.IsEnabled && first.Priority == 17 && first.CatalogTargetId == "m16" && File.Exists(first.VpkFilePath),
-            "readable filenames and all existing mod choices survive save and reopen");
+            "numeric IDs and all existing mod choices survive save and reopen");
         Complete(root.DisposeAsync().AsTask());
 
         File.Delete(Path.Combine(addons, "modebackup", "organizer-history.jsonl"));
@@ -74,30 +77,49 @@ internal static partial class Program
         Check(ModStorage.IsBodyName("AK-47 - 中文枪皮.vpk") && !ModStorage.IsBodyName("../outside.vpk")
             && !ModStorage.IsBodyName("CON.vpk") && !ModStorage.IsBodyName("CON.backup.vpk")
             && !ModStorage.IsBodyName("bad:name.vpk") && !ModStorage.IsBodyName("bad .vpk"),
-            "readable body validation accepts names with meaning while rejecting traversal and invalid Windows filenames");
+            "legacy readable names remain loadable while traversal and invalid Windows filenames are rejected");
         var longGame = Path.Combine(output, "long-name-" + Guid.NewGuid().ToString("N")[..5]);
         var longAddons = Path.Combine(longGame, "left4dead2", "addons"); Directory.CreateDirectory(longAddons);
-        var longSource = Path.Combine(longGame, "long.vpk"); WriteVpk(longSource, new string('a', 99) + ".bb", "custom/probe.bin");
+        var longSource = Path.Combine(longGame, "long.vpk"); var longTitle = new string('a', 99) + ".bb";
+        WriteVpk(longSource, longTitle, "custom/probe.bin");
         root = new AddonRoot { DirectoryPath = longAddons, GamePath = longGame, TaskScheduler = scheduler };
         var longBody = Complete(root.Storage.ImportLocalVpkAsync([longSource])).Imported.Single();
-        Check(longBody.StorageFileName == new string('a', 99) + ".vpk" && File.Exists(longBody.VpkFilePath),
-            "long titles are shortened without leaving an invalid trailing dot or losing the saved file mapping");
+        Check(longBody.StorageFileName == "0.vpk" && File.Exists(longBody.VpkFilePath)
+            && File.ReadAllText(Path.Combine(root.Storage.BackupPath, ModBackupIndex.FileName)).Contains("可读名称：" + longTitle),
+            "long titles stay complete in TXT while the physical filename remains numeric");
         Complete(root.DisposeAsync().AsTask());
         var migration = Path.Combine(output, "old-name-" + Guid.NewGuid().ToString("N")[..5]);
         var migrationAddons = Path.Combine(migration, "left4dead2", "addons"); var bank = Path.Combine(migrationAddons, "modebackup");
-        Directory.CreateDirectory(bank); File.WriteAllBytes(Path.Combine(bank, "m000123.vpk"), firstBytes);
+        const string oldName = "AK-47 - 旧中文名称.vpk";
+        const string oldNumber = "m000123.vpk";
+        Directory.CreateDirectory(bank);
+        File.WriteAllBytes(Path.Combine(bank, oldName), firstBytes);
+        File.WriteAllBytes(Path.Combine(bank, oldNumber), secondBytes);
+        WriteVpk(Path.Combine(bank, "0.vpk"), "已有编号", "models/v_models/v_smg_mp5.mdl");
         var hash = Convert.ToHexString(SHA256.HashData(firstBytes)); var id = Guid.NewGuid();
+        var secondHash = Convert.ToHexString(SHA256.HashData(secondBytes));
         root = new AddonRoot { DirectoryPath = migrationAddons, GamePath = migration, TaskScheduler = scheduler };
-        root.LoadSave(new() { Nodes = [new LocalVpkAddonSave { Id = id, Name = "旧枪皮", ContentHash = hash,
-            StorageFileName = "m000123.vpk", IsEnabled = false, Priority = 23, CatalogTargetId = "m16" }] });
+        root.LoadSave(new() { Nodes =
+        [
+            new LocalVpkAddonSave { Id = id, Name = "旧枪皮", ContentHash = hash,
+                StorageFileName = oldName, IsEnabled = false, Priority = 23, CatalogTargetId = "m16" },
+            new LocalVpkAddonSave { Id = Guid.NewGuid(), Name = "原工坊枪皮", ContentHash = secondHash,
+                StorageFileName = oldNumber, IsEnabled = true, OriginalPaths = [Path.Combine("workshop", "3372750017.vpk")] }
+        ] });
         root.Storage.CheckDeployment();
-        Check(File.Exists(Path.Combine(bank, "m000123.vpk")), "opening an old library does not rename or apply anything automatically");
+        Check(File.Exists(Path.Combine(bank, oldName)) && File.Exists(Path.Combine(bank, oldNumber)),
+            "opening an old library leaves its legacy body names in place");
         Complete(root.Storage.RefreshAsync());
-        var migrated = root.GetDescendants().OfType<VpkAddon>().Single();
-        Check(migrated.Id == id && migrated.StorageFileName == "AK-47 - 同名枪皮.vpk" && migrated.ContentHash == hash
+        var migrated = root.GetDescendants().OfType<VpkAddon>().Single(node => node.Id == id);
+        var migratedNumber = root.GetDescendants().OfType<VpkAddon>().Single(node => node.ContentHash == secondHash);
+        var migratedIndex = File.ReadAllText(Path.Combine(bank, ModBackupIndex.FileName)).ReplaceLineEndings("\n");
+        Check(migrated.StorageFileName == "1.vpk" && migrated.ContentHash == hash
             && !migrated.IsEnabled && migrated.Priority == 23 && migrated.CatalogTargetId == "m16"
-            && !File.Exists(Path.Combine(bank, "m000123.vpk")) && File.ReadAllBytes(migrated.VpkFilePath!).SequenceEqual(firstBytes),
-            "explicit migration renames legacy bodies without changing identity, bytes, enabled choices, priority or tags");
+            && !File.Exists(Path.Combine(bank, oldName)) && File.ReadAllBytes(migrated.VpkFilePath!).SequenceEqual(firstBytes)
+            && migratedIndex.Contains($"数字编号：1\n本体文件名：1.vpk\n可读名称：{Path.GetFileNameWithoutExtension(oldName)}\nSHA-256：{hash}")
+            && migratedNumber.StorageFileName == "2.vpk" && File.Exists(Path.Combine(bank, "0.vpk"))
+            && !File.Exists(Path.Combine(bank, oldNumber)) && WorkshopManifest.KnownId(migratedNumber) == 3372750017,
+            "migration preserves the existing ID, former Chinese name, body bytes, choices and real Workshop provenance");
         root.Save(); Complete(root.DisposeAsync().AsTask());
         File.WriteAllText(Path.Combine(output, "readable-rollback-game.txt"), migration);
     }

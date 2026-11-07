@@ -6,7 +6,10 @@ using MsBox.Avalonia;
 using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Models;
 using MsBox.Avalonia.Enums;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using System.IO;
 using Serilog;
@@ -18,6 +21,45 @@ namespace FireAxe.Views;
 
 public static class CommonMessageBoxes
 {
+    public static async Task ShowStorageNoticeAsync(Window ownerWindow, AppSettings settings)
+    {
+        if (settings.SkipStorageNotice) return;
+
+        var skip = new CheckBox { Content = "下次不再提示" };
+        var confirm = new Button { Content = "知道了", IsDefault = true, MinWidth = 90, HorizontalAlignment = HorizontalAlignment.Right };
+        var dialog = new Window
+        {
+            Title = "Mod 整理与备份提醒",
+            Width = 500,
+            SizeToContent = SizeToContent.Height,
+            CanResize = false,
+            ShowInTaskbar = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Content = new StackPanel
+            {
+                Margin = new Thickness(20),
+                Spacing = 14,
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = "游戏关闭时执行「应用 Mod」或本地整理，会将 addons 及其子文件夹中的有效 VPK 本体集中保存到 addons/modebackup。\n\n如果你已按文件夹整理好 Mod，建议先备份整个 addons，以保留原来的目录结构。",
+                        TextWrapping = TextWrapping.Wrap
+                    },
+                    skip,
+                    confirm
+                }
+            }
+        };
+        confirm.Click += (_, _) => dialog.Close();
+        await dialog.ShowDialog(ownerWindow);
+        if (skip.IsChecked == true)
+        {
+            settings.SkipStorageNotice = true;
+            settings.Save();
+        }
+    }
+
     public static string? GetStartDirectory(Window ownerWindow, string? preferredPath = null)
     {
         if (!string.IsNullOrWhiteSpace(preferredPath) && Directory.Exists(preferredPath)) return Path.GetFullPath(preferredPath);

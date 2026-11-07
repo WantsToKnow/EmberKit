@@ -116,16 +116,17 @@ public partial class App : Application
                     }){ IsBackground = true }.Start();
                 };
 
-                services.GetRequiredService<AppSettings>();
+                var settings = services.GetRequiredService<AppSettings>();
 
                 var mainWindowViewModel = services.GetRequiredService<MainWindowViewModel>();
                 var mainWindow = services.GetRequiredService<IAppWindowManager>().CreateMainWindow(mainWindowViewModel);
                 desktop.MainWindow = mainWindow;
+                mainWindow.Opened += async (_, _) => await CommonMessageBoxes.ShowStorageNoticeAsync(mainWindow, settings);
                 mainWindow.Show();
 
                 var saveManager = services.GetRequiredService<SaveManager>();
                 saveManager.Register(services.GetRequiredService<MainWindowViewModel>());
-                saveManager.Register(services.GetRequiredService<AppSettings>());
+                saveManager.Register(settings);
                 saveManager.Run();
             }
             else

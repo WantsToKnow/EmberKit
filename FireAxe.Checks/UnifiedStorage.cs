@@ -46,9 +46,8 @@ internal static partial class Program
         Check(new FileInfo(obsoleteLink).LinkTarget is null, "dangling legacy bank links are removed without recreating nonexistent bodies");
         Check(Directory.EnumerateDirectories(addons).Select(Path.GetFileName).SequenceEqual(["modebackup"]), "addons contains no old workshop/batch/manager directories");
         Check(root.GetDescendants().OfType<VpkAddon>().Count() == 2 && pistol.ContentHash is not null && scar.ContentHash is not null, "one persistent mod record per body, including the legacy workshop item");
-        Check(new[] { pistol, (VpkAddon)scar }.All(node => node.StorageFileName is { } name && ModStorage.IsBodyName(name))
-            && pistol.StorageFileName!.Contains("Pistol test appearance") && scar.StorageFileName!.Contains("SCAR test appearance")
-            && pistol.StorageFileName != scar.StorageFileName, "bank bodies have descriptive filenames independently of their complete SHA-256 identities");
+        Check(new[] { pistol.StorageFileName, scar.StorageFileName }.ToHashSet().SetEquals(["0.vpk", "1.vpk"]),
+            "nested and Workshop bodies use separate local numeric IDs independently of their content hashes");
         string Entry(VpkAddon node) => Path.Combine(addons, ModStorage.EntryName(node.ContentHash!));
         Check(Path.GetFileName(Entry(pistol)).Length == 32, "loading entries use short ASCII hash prefixes instead of complete SHA-256 filenames");
         var actualGameAddons = @"F:\SteamLibrary\steamapps\common\Left 4 Dead 2\left4dead2\addons";
@@ -63,7 +62,7 @@ internal static partial class Program
         Check(pistol.IsGameSynchronized && scar.IsGameSynchronized, "green status is published only after links and the game list verify");
         var text = File.ReadAllText(Path.Combine(root.Storage.BackupPath, ModBackupIndex.FileName));
         Check(text.Contains("Pistol test appearance") && text.Contains("SCAR test appearance") && text.Contains("3372750017") && text.Contains(pistol.ContentHash!), "human-readable TXT retains titles, purpose, source IDs and hash mappings");
-        Check(text.Contains("本体文件名：" + pistol.StorageFileName) && text.Contains("SHA-256：" + pistol.ContentHash), "TXT explicitly maps each readable body filename to its complete hash");
+        Check(text.Contains("本体文件名：" + pistol.StorageFileName) && text.Contains("SHA-256：" + pistol.ContentHash), "TXT explicitly maps each numbered body filename to its complete hash");
         Check(Directory.EnumerateFiles(root.BackupDirectoryPath, "before-unified-*.addonroot").Any(), "a unique metadata and game-list snapshot precedes migration");
 
         File.Delete(Entry(pistol));
@@ -128,7 +127,7 @@ internal static partial class Program
         var oldBody = Path.Combine(root.Storage.BackupPath, pistol.ContentHash + ".vpk");
         File.Move(pistol.VpkFilePath!, oldBody);
         Complete(root.Storage.RefreshAsync());
-        Check(!File.Exists(oldBody) && ModStorage.IsBodyName(Path.GetFileName(pistol.VpkFilePath!)) && FileSystemUtils.IsSameFile(Entry(pistol), pistol.VpkFilePath!), "a legacy full-hash bank body migrates to a readable name without changing bytes, game entry or enabled state");
+        Check(!File.Exists(oldBody) && pistol.StorageFileName == stableName && FileSystemUtils.IsSameFile(Entry(pistol), pistol.VpkFilePath!), "a legacy full-hash bank body recovers its numeric ID, game entry and enabled state");
 
         pistol.Name = "中文手枪显示名称";
         Complete(root.Storage.RefreshAsync());
@@ -170,7 +169,7 @@ internal static partial class Program
         Complete(root.Storage.RefreshAsync());
         Check(http.MetadataRequests == 0 && new FileInfo(Entry(pistol)).LinkTarget is not null
             && FileSystemUtils.IsSameFile(Entry(pistol), pistol.VpkFilePath!), "reopening a legacy library ignores its old hard-link preference and keeps symbolic entries without network calls");
-        Check(pistol.StorageFileName is { } savedBodyName && ModStorage.IsBodyName(savedBodyName), "readable body filenames survive save and reopen");
+        Check(pistol.StorageFileName == stableName, "the numeric body filename survives save and reopen");
 
         var bodyPath = pistol.VpkFilePath!;
         Complete(pistol.DestroyAsync());

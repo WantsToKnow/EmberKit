@@ -1,6 +1,6 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using Serilog;
 using SteamDatabase.ValvePak;
 
@@ -39,32 +39,22 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
         && FileSystemUtils.SanitizeFileName(stem) == stem
         && FileSystemUtils.SanitizeFileName(stem.Split('.')[0]).Length > 0;
 
-    private static bool IsLegacyBodyName(string name) => ModOrganizer.IsContentName(name)
-        || name.Length is >= 11 and <= 23 && name[0] == 'm' && name.EndsWith(".vpk", StringComparison.OrdinalIgnoreCase)
-            && name[1..^4].All(char.IsAsciiDigit);
+    internal static bool IsNumberedBodyName(string name) => name.Length is > 4 and <= 160
+        && name.EndsWith(".vpk", StringComparison.OrdinalIgnoreCase)
+        && (name.Length == 5 || name[0] != '0') && name[..^4].All(char.IsAsciiDigit);
 
-    private string AllocateBodyPath(string source, string hash, IReadOnlyDictionary<string, string> recordedNames, VpkAddon? node = null)
+    internal static bool IsReadableBodyName(string name) => IsBodyName(name) && !ModOrganizer.IsContentName(name)
+        && !name[..^4].All(char.IsAsciiDigit)
+        && !(name[0] == 'm' && name.Length > 5 && name[1..^4].All(char.IsAsciiDigit));
+
+    internal static bool IsBankBodyPath(string? path) => string.Equals(Path.GetFileName(Path.GetDirectoryName(path)),
+        ModOrganizer.BackupDirectory, StringComparison.OrdinalIgnoreCase);
+
+    private string AllocateBodyPath(string hash, IReadOnlyDictionary<string, string> recordedNames)
     {
-        using var package = new Package(); package.Read(source);
-        var info = VpkUtils.GetAddonInfo(package);
-        var inspection = new ModInspection(info?.Title,
-            ModTargetClassifier.Classify(package.Entries!.Values.SelectMany(entries => entries).Select(entry => entry.GetFullPath())));
-        var target = inspection.PrimaryTarget ?? node?.CatalogTarget;
-        var title = new[] { info?.Title, (node as WorkshopVpkAddon)?.PublishedFileDetailsCache?.Title, node?.Name,
-            source.StartsWith(TemporaryPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ? null : Path.GetFileNameWithoutExtension(source) }
-            .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value) && !value.Trim().All(char.IsAsciiDigit)
-                && !IsLegacyBodyName(value.Trim() + ".vpk"))?.Trim() ?? "未命名 Mod";
-        if (target is not null && !title.Contains(target.Name, StringComparison.OrdinalIgnoreCase)) title = target.Name + " - " + title;
-        if (title.Contains("[Animation trim]", StringComparison.OrdinalIgnoreCase)
-            && (node?.AnimationEdits ?? WeaponAnimationRecipe.Read(package)) is { } recipe) title += " - " + recipe.Summary;
-        var stem = AddonNode.SanitizeName(Regex.Replace(title.Replace('/', '-').Replace('\\', '-'), @"\s+", " "));
-        if (stem.Length > 100) stem = stem[..100];
-        if (char.IsHighSurrogate(stem[^1])) stem = stem[..^1];
-        stem = stem.TrimEnd(' ', '.');
-        if (!IsBodyName(stem + ".vpk")) stem = "_" + stem;
-        for (var suffix = 1; ; suffix++)
+        for (var id = 0; ; id++)
         {
-            var name = stem + (suffix == 1 ? "" : " (" + suffix + ")") + ".vpk";
+            var name = id.ToString(CultureInfo.InvariantCulture) + ".vpk";
             var path = Path.Combine(BackupPath, name);
             if (!File.Exists(path) && !Directory.Exists(path) && new FileInfo(path).LinkTarget is null
                 && (!recordedNames.TryGetValue(name, out var recorded) || recorded.Equals(hash, StringComparison.OrdinalIgnoreCase))) return path;
@@ -239,7 +229,7 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
                     knownBodies[name] = hash;
                 }
             // Persist a unique pre-migration snapshot before moving any bodies or removing old links.
-            if (nodes.Any(node => node.ContentHash is null) || Directory.EnumerateFiles(BackupPath, "*.vpk").Any(path => IsLegacyBodyName(Path.GetFileName(path)))
+            if (nodes.Any(node => node.ContentHash is null) || Directory.EnumerateFiles(BackupPath, "*.vpk").Any(path => !IsNumberedBodyName(Path.GetFileName(path)))
                 || Directory.EnumerateDirectories(AddonsPath).Any(path => Path.GetFileName(path) is not "modebackup" and not "firefox_temp"))
                 Snapshot(listPath);
             else if (Directory.EnumerateFiles(AddonsPath, "mod_*.vpk").Any(path => Path.GetFileNameWithoutExtension(path).Length == 68))
@@ -270,9 +260,7 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
                 {
                     var legacy = Path.Combine(BackupPath, hash + ".vpk");
                     if (File.Exists(legacy) && !FileSystemUtils.IsSamePath(legacy, source)) await VerifyBody(legacy, token, hash);
-                    var body = inBank && IsBodyName(Path.GetFileName(resolved)) && !IsLegacyBodyName(Path.GetFileName(resolved))
-                        ? resolved : AllocateBodyPath(resolved, hash, knownBodies, nodes.FirstOrDefault(node => node.ContentHash == hash
-                            || node.VpkFilePath is { } path && FileSystemUtils.IsSamePath(path, resolved)));
+                    var body = inBank && IsNumberedBodyName(Path.GetFileName(resolved)) ? resolved : AllocateBodyPath(hash, knownBodies);
                     // Journal the full identity before a rename. A crash can recover it by hashing the bank.
                     Remember(source, hash, Path.GetFileName(body));
                     if (!FileSystemUtils.IsSamePath(source, body))
@@ -300,7 +288,8 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
                 return hash;
             }
 
-            foreach (var body in Directory.EnumerateFiles(BackupPath, "*.vpk").OrderBy(path => IsBodyName(Path.GetFileName(path)) && !IsLegacyBodyName(Path.GetFileName(path)) ? 0 : 1).ThenBy(path => path, StringComparer.OrdinalIgnoreCase).ToArray())
+            foreach (var body in Directory.EnumerateFiles(BackupPath, "*.vpk")
+                .OrderBy(path => !IsNumberedBodyName(Path.GetFileName(path))).ThenBy(path => path, StringComparer.OrdinalIgnoreCase).ToArray())
             {
                 token.ThrowIfCancellationRequested();
                 try { await Store(body); }
@@ -375,10 +364,11 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
             {
                 if (IgnoredHashes.Contains(pair.Key) || nodes.Any(node => node.ContentHash == pair.Key)) continue;
                 var node = AddonNode.Create<LocalVpkAddon>(root);
-                node.Name = root.GetUniqueChildName(Path.GetFileNameWithoutExtension(pair.Value), true);
                 node.ContentHash = pair.Key;
                 node.StorageFileName = Path.GetFileName(pair.Value);
                 node.OriginalPaths = originals.Where(original => original.Value == pair.Key).Select(original => Path.GetRelativePath(AddonsPath, original.Key)).ToArray();
+                var title = ModBackupIndex.PreviousReadableName(node.OriginalPaths) ?? node.RetrieveInfo()?.Title;
+                node.Name = root.GetUniqueChildName(string.IsNullOrWhiteSpace(title) ? "Mod " + Path.GetFileNameWithoutExtension(pair.Value) : title, true);
                 var oldAlias = "fa_mod_" + pair.Key[..24].ToLowerInvariant() + ".vpk";
                 node.IsEnabled = oldEntries.GetValueOrDefault(EntryName(pair.Key), oldEntries.GetValueOrDefault(oldAlias,
                     node.OriginalPaths.Select(path => oldEntries.GetValueOrDefault(path)).FirstOrDefault(state => state is not null) ?? "1")) == "1";
@@ -754,7 +744,7 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
                     {
                         await VerifyBody(duplicateBody, token, hash);
                         duplicate.StorageFileName = Path.GetFileName(duplicateBody);
-                        await ModBackupIndex.RecordBodyAsync(AddonsPath, duplicate.StorageFileName, hash, token);
+                        await ModBackupIndex.RecordBodyAsync(AddonsPath, duplicate.StorageFileName, hash, duplicate.Name, token);
                         if (isLooseSource) duplicate.OriginalPaths = duplicate.OriginalPaths.Append(relative).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
                         existing.Add(duplicate);
                         continue; // Preserve the existing enable choice and manual tag.
@@ -842,16 +832,18 @@ public sealed class ModStorage(AddonRoot root) : ObservableObject, IDisposable
             WorkshopBackup.EnsureRealDirectory(BackupPath);
             var knownBodies = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             ModBackupIndex.ReadOriginalPaths(AddonsPath, [], knownBodies);
+            foreach (var archived in root.GetDescendants().OfType<VpkAddon>())
+                if (archived.StorageFileName is { } name && archived.ContentHash is { } contentHash) knownBodies.TryAdd(name, contentHash);
             var body = _bodies.GetValueOrDefault(hash)
                 ?? knownBodies.Where(pair => pair.Value == hash).Select(pair => Path.Combine(BackupPath, pair.Key)).FirstOrDefault(File.Exists)
                 ?? Path.Combine(BackupPath, hash + ".vpk");
             if (File.Exists(body)) { await VerifyBody(body, token, hash); token.ThrowIfCancellationRequested(); node.ThrowIfInvalid(); File.Delete(file); }
-            else { token.ThrowIfCancellationRequested(); node.ThrowIfInvalid(); body = AllocateBodyPath(file, hash, knownBodies, node); File.Move(file, body); }
+            else { token.ThrowIfCancellationRequested(); node.ThrowIfInvalid(); body = AllocateBodyPath(hash, knownBodies); File.Move(file, body); }
             _bodies[hash] = body;
             if (node.ContentHash is { } old && old != hash) IgnoredHashes.Add(old);
             IgnoredHashes.Remove(hash);
             AppendOriginal(Path.GetRelativePath(AddonsPath, file), hash, Path.GetFileName(body));
-            await ModBackupIndex.RecordBodyAsync(AddonsPath, Path.GetFileName(body), hash, token);
+            await ModBackupIndex.RecordBodyAsync(AddonsPath, Path.GetFileName(body), hash, (node as WorkshopVpkAddon)?.PublishedFileDetailsCache?.Title ?? node.Name, token);
             node.ContentHash = hash;
             node.StorageFileName = IsBodyName(Path.GetFileName(body)) ? Path.GetFileName(body) : null;
             node.OriginalPaths = node.OriginalPaths.Append(Path.GetRelativePath(AddonsPath, file)).Distinct().ToArray();
