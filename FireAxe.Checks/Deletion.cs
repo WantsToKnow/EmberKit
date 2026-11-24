@@ -59,10 +59,10 @@ internal static partial class Program
         var window = new Window { Width = 1400, Height = 800, Content = new AddonNodeExplorerView { DataContext = explorer } };
         window.Show(); PumpFrames();
         explorer.ModCatalog.LocateMod(target); explorer.SelectNode(other); PumpFrames();
-        var confirmed = false; var requestedNames = ""; var confirmations = 0;
+        var confirmed = false; var requestedNames = ""; var confirmations = 0; var retainFiles = false;
         using var rowConfirmation = explorer.ConfirmDeleteInteraction.RegisterHandler(context =>
         {
-            requestedNames = explorer.DeletionNames; confirmations++; context.SetOutput(confirmed);
+            requestedNames = explorer.DeletionNames; confirmations++; retainFiles = context.Input; context.SetOutput(confirmed);
         });
         using var rowProgress = explorer.ShowDeletionProgressInteraction.RegisterHandler(context =>
         { operations = context.Input.ToArray(); context.SetOutput(Unit.Default); });
@@ -71,23 +71,62 @@ internal static partial class Program
         Check(button.IsEffectivelyVisible && ReferenceEquals(button.Command, explorer.DeleteModCommand) && button.CommandParameter == target,
             "each inline mod has a direct delete button bound to that exact mod");
         using (var frame = window.CaptureRenderedFrame()!) frame.Save(Path.Combine(output, "deletion-inline-preview.png"));
-        Click(); PumpFrames();
+        Click(button); PumpFrames();
         Check(confirmations == 1 && requestedNames.Contains(target.Name) && !requestedNames.Contains(other.Name)
             && target.IsValid && explorer.SelectedNodes.SequenceEqual([other]) && explorer.ModCatalog.IsOverview,
             "row deletion confirms its own title and cancellation preserves other selections without opening details");
-        confirmed = true; Click(); PumpFrames(); Complete(Task.WhenAll(operations.Select(operation => operation.Task)));
+        confirmed = true; Click(button); PumpFrames(); Complete(Task.WhenAll(operations.Select(operation => operation.Task)));
         Check(!target.IsValid && other.IsValid && explorer.SelectedNodes.SequenceEqual([other]) && explorer.ModCatalog.IsOverview,
             "confirmed row deletion removes only that mod and keeps the catalog and other selection open");
         var previous = confirmations;
         Complete(explorer.DeleteModCommand.Execute(target).ToTask());
         Check(confirmations == previous && other.IsValid, "deleting an already removed row is a harmless no-op");
+
+        var hunter = AddonNode.Create<LocalVpkAddon>(root); hunter.Name = "Batch hunter"; hunter.CatalogTargetId = "infected:hunter";
+        var keepGroup = AddonNode.Create<AddonGroup>(root); keepGroup.Name = "Keep folder";
+        var keep = AddonNode.Create<LocalVpkAddon>(root, keepGroup); keep.Name = "Keep unselected AK"; keep.CatalogTargetId = "ak47";
+        var m4Path = other.VpkFilePath!;
+        var hunterPath = hunter.VpkFilePath!;
+        var keepPath = keep.VpkFilePath!;
+        Directory.CreateDirectory(Path.GetDirectoryName(keepPath)!);
+        WriteVpk(m4Path, other.Name, "models/v_models/v_rifle.mdl");
+        WriteVpk(hunterPath, hunter.Name, "models/infected/hunter.mdl");
+        WriteVpk(keepPath, keep.Name, "models/v_models/v_rif_ak47.mdl");
+        explorer.SelectNode(keepGroup);
+        explorer.ModCatalog.LocateMod(other); PumpFrames();
+        var bulk = window.GetVisualDescendants().OfType<Button>().Single(control => control.Name == "deleteSelectedModsButton");
+        Check(bulk.IsEffectivelyVisible && !bulk.IsEffectivelyEnabled && explorer.SelectedNodes.Contains(keepGroup),
+            "the catalog bulk-delete action stays disabled when the shared selection contains only a folder");
+
+        Click(SelectionFor(other));
+        explorer.ModCatalog.LocateMod(hunter); PumpFrames();
+        Click(SelectionFor(hunter)); PumpFrames();
+        Check(bulk.IsEffectivelyEnabled && bulk.Content is TextBlock { Text: "删除所选 (2)" } && explorer.SelectedNodes.Contains(keepGroup),
+            "checkboxes in different categories enable bulk deletion with the count of selected mods only");
+        using (var frame = window.CaptureRenderedFrame()!) frame.Save(Path.Combine(output, "catalog-bulk-delete-preview.png"));
+        confirmed = false;
+        previous = confirmations;
+        Click(bulk); PumpFrames();
+        Check(confirmations == previous + 1 && !retainFiles && requestedNames.Split('\n').ToHashSet().SetEquals([other.Name, hunter.Name])
+            && File.Exists(m4Path) && File.Exists(hunterPath) && other.IsValid && hunter.IsValid,
+            "bulk deletion confirms both checked mods once and cancellation preserves their records and files");
+
+        confirmed = true;
+        Click(bulk); PumpFrames(); Complete(Task.WhenAll(operations.Select(operation => operation.Task))); PumpFrames();
+        Check(confirmations == previous + 2 && operations.Length == 2 && !other.IsValid && !hunter.IsValid
+            && !File.Exists(m4Path) && !File.Exists(hunterPath) && keepGroup.IsValid && keep.IsValid && File.Exists(keepPath)
+            && !bulk.IsEffectivelyEnabled && explorer.ModCatalog.IsOverview,
+            "confirmed bulk deletion removes only checked mods and their VPKs and stays on the catalog page");
         window.Close();
         Complete(root.DisposeAsync().AsTask());
 
-        void Click()
+        CheckBox SelectionFor(VpkAddon addon) => window.GetVisualDescendants().OfType<CheckBox>().Single(control => control.Name == "inlineSelectModCheckBox"
+            && control.DataContext is VpkAddonViewModel model && model.Addon == addon);
+
+        void Click(Control control)
         {
-            button.BringIntoView(); PumpFrames();
-            var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
+            control.BringIntoView(); PumpFrames();
+            var point = control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
             window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
         }
     }

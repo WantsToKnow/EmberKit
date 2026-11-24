@@ -167,19 +167,24 @@ public sealed class ModCatalogViewModel : ViewModelBase
     public event Action<VpkAddon>? ModRequested;
     public event Action<VpkAddon>? LocateRequested;
     public event Action<VpkAddon, bool>? SelectionRequested;
+    internal IReadOnlyCollection<VpkAddon> SelectedMods => _selectedMods;
+    public int SelectedModCount => _selectedMods.Count;
+
     public void SelectMod(VpkAddon addon, bool selected)
     {
         if (addon.IsValid && addon.Root == _root) SelectionRequested?.Invoke(addon, selected);
     }
     public void UpdateSelection(IEnumerable<AddonNode> nodes)
     {
-        _selectedMods = nodes.Select(GetVpk).OfType<VpkAddon>().ToHashSet();
+        _selectedMods = nodes.Select(GetVpk).OfType<VpkAddon>().Where(addon => addon.IsValid && addon.Root == _root).ToHashSet();
         UpdateSelectionMarkers();
     }
     private void UpdateSelectionMarkers()
     {
+        _selectedMods.RemoveWhere(addon => !addon.IsValid);
         foreach (var model in _sections.SelectMany(section => section.Children).SelectMany(target => target.Mods))
             model.IsSelected = model.Addon is { } addon && _selectedMods.Contains(addon);
+        this.RaisePropertyChanged(nameof(SelectedModCount));
     }
     public IReadOnlyList<ModCategoryFilter> Categories { get; private set => this.RaiseAndSetIfChanged(ref field, value); }
     public IReadOnlyList<ModOverlapGroup> OverlapGroups { get; private set => this.RaiseAndSetIfChanged(ref field, value); } = [];

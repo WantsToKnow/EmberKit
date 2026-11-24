@@ -325,6 +325,8 @@ public class AddonNodeExplorerViewModel : ViewModelBase, IActivatableViewModel, 
 
         DeleteCommand = ReactiveCommand.CreateFromTask<bool>(DeleteSelectionAsync, this.WhenAnyValue(x => x.HasSelection));
         DeleteModCommand = ReactiveCommand.CreateFromTask<VpkAddon>(addon => DeleteNodesAsync([addon], false));
+        DeleteCatalogSelectionCommand = ReactiveCommand.CreateFromTask(() => DeleteNodesAsync(ModCatalog.SelectedMods, false),
+            ModCatalog.WhenAnyValue(catalog => catalog.SelectedModCount).Select(count => count > 0));
 
         var hasSelectedWorkshopVpkAddon = _selectedNodes.ObserveCollectionChanges()
             .Select(_ => SelectedNodes.SelectMany(addon => addon.GetSelfAndDescendants()).OfType<WorkshopVpkAddon>().Any());
@@ -639,6 +641,7 @@ public class AddonNodeExplorerViewModel : ViewModelBase, IActivatableViewModel, 
 
     public ReactiveCommand<bool, Unit> DeleteCommand { get; }
     public ReactiveCommand<VpkAddon, Unit> DeleteModCommand { get; }
+    public ReactiveCommand<Unit, Unit> DeleteCatalogSelectionCommand { get; }
     public string DeletionNames { get; private set; } = "";
 
     public ReactiveCommand<Unit, Unit> SetAutoUpdateStrategyToDefaultRecursivelyCommand { get; }
@@ -1012,8 +1015,12 @@ public class AddonNodeExplorerViewModel : ViewModelBase, IActivatableViewModel, 
         var targets = selected.Where(node => !node.GetSelfAndAncestors().Skip(1).OfType<AddonNode>().Any(selected.Contains))
             .Select(node => (Node: node, Path: node.NodePath)).ToArray();
         if (targets.Length == 0) return;
-        DeletionNames = string.Join("\n", targets.Select(target => ModCatalogViewModel.GetVpk(target.Node) is { } vpk
-            ? AddonRoot.DownloadHistory.GetDisplayTitle(vpk) : target.Path));
+        DeletionNames = string.Join("\n", targets.Select(target =>
+        {
+            if (ModCatalogViewModel.GetVpk(target.Node) is not { } vpk) return target.Path;
+            var name = AddonRoot.DownloadHistory.GetDisplayTitle(vpk);
+            return vpk.AnimationEdits is { } edits ? name + " · " + edits.Summary : name;
+        }));
         if (!await ConfirmDeleteInteraction.Handle(retainFile)) return;
         var operations = targets.Select(target => (Delete(target.Node), target.Path)).ToArray();
         await ShowDeletionProgressInteraction.Handle(operations);

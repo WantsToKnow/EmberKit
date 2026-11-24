@@ -19,9 +19,14 @@
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,0,10,0">
       <StackPanel Spacing="3">
         <TextBlock Text="模组目录" FontSize="23" FontWeight="SemiBold"/>
-        <TextBlock Text="分类和对象可同时展开；勾选 Mod 的「选择」可用于附加功能，调整后点击「应用 Mod」。" Foreground="#9AAFC9" FontSize="12" TextWrapping="Wrap"/>
+        <TextBlock Text="分类和对象可同时展开。勾选 Mod 后可批量删除或使用附加功能。调整后点击「应用 Mod」。" Foreground="#9AAFC9" FontSize="12" TextWrapping="Wrap"/>
       </StackPanel>
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+        <Button Name="deleteSelectedModsButton" Classes="compact" Foreground="#F4ADAD"
+                Command="{Binding $parent[v:AddonNodeExplorerView].ViewModel.DeleteCatalogSelectionCommand}"
+                ToolTip.Tip="确认后删除勾选的 Mod 及文件">
+          <TextBlock Text="{Binding SelectedModCount, StringFormat='删除所选 ({0})'}"/>
+        </Button>
         <Button Classes="compact" Content="重复替换" Command="{Binding ShowOverlaps}" IsVisible="{Binding HasOverlaps}"/>
         <Button Classes="compact" Name="showAllModsButton" Content="完整列表 →" Command="{Binding ShowAll}"/>
       </StackPanel>
@@ -74,7 +79,7 @@
                                       <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
                                         <CheckBox Name="inlineSelectModCheckBox" Content="选择" IsChecked="{Binding IsSelected, Mode=OneWay}"
                                                   Click="SelectMod" FontSize="11" MinHeight="24" VerticalAlignment="Center"
-                                                  ToolTip.Tip="选择此 Mod 用于附加功能，可直接勾选多个；右侧开关控制是否在游戏中启用。"/>
+                                                  ToolTip.Tip="勾选后可点「删除所选」或使用附加功能。右侧开关控制游戏启用。"/>
                                         <v:AddonIconView Grid.Column="1" ImageSize="48" SpecialIconSize="0" IsVisible="{Binding ShouldShowImage}" VerticalAlignment="Center"/>
                                         <StackPanel Grid.Column="2" Spacing="3" VerticalAlignment="Center">
                                           <TextBlock Text="{Binding DisplayTitle}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding DisplayTitle}"/>
